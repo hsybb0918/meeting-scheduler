@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 
 from models.meeting_agent import MeetingAgent
-from models.user_calendar import ScheduledMeeting, ScheduledDay
+from models.user_calendar import ScheduledMeeting
 
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
 
@@ -34,10 +34,10 @@ def foo():
     global guest_agent_1
     global guest_agent_2
 
-    meeting = ScheduledMeeting('master thesis', 'ms team', 'talk about the project')
-    meeting.set_date(2021, 6, 30)
+    meeting = ScheduledMeeting(6, 30, 2021)
     meeting.set_time_slots(23, 24)
-    meeting.set_participants(host_agent.jid, guest_agent_1.jid, guest_agent_2.jid)
+    meeting.set_participants('meeting-alice@404.city', 'meeting-bob@404.city', 'meeting-calvin@404.city')
+    meeting.set_information('master thesis', 'ms team', 'talk about the project')
 
     host_agent.propose_meeting(meeting)
 

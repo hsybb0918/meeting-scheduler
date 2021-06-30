@@ -10,11 +10,13 @@ from models.utils import get_config
 
 class ScheduledMeeting:
     # meeting time
-    date = None
+    month = None
+    day = None
+    year = None
     time_slots = None
 
     # meeting participants
-    host_agent = ''
+    host_agent = None
     guest_agents = None
 
     # meeting information
@@ -22,13 +24,10 @@ class ScheduledMeeting:
     location = ''
     description = ''
 
-    def __init__(self, subject, location='', description=''):
-        self.subject = subject
-        self.location = location
-        self.description = description
-
-    def set_date(self, year, month, day):
-        self.date = datetime.date(year, month, day)
+    def __init__(self, month, day, year):
+        self.month = int(month)
+        self.day = int(day)
+        self.year = int(year)
 
     def set_time_slots(self, slot, *args):
         self.time_slots = []
@@ -36,6 +35,9 @@ class ScheduledMeeting:
         if args is not None:
             for value in args:
                 self.time_slots.append(int(value))
+
+    def set_time_slots_from_list(self, slot_list):
+        self.time_slots = slot_list
 
     def set_participants(self, host, guest, *args):
         self.guest_agents = []
@@ -45,7 +47,19 @@ class ScheduledMeeting:
             for value in args:
                 self.guest_agents.append(str(value))
 
+    def set_host(self, host):
+        self.host_agent = host
+
+    def set_guests_from_list(self, guests_list):
+        self.guest_agents = guests_list
+
+    def set_information(self, subject, location='', description=''):
+        self.subject = subject
+        self.location = location
+        self.description = description
+
     def __str__(self):
+        date_str = str(self.month) + '-' + str(self.day) + '-' + str(self.year)
         slots_str = str(self.time_slots[0])
         guests_str = str(self.guest_agents[0])
 
@@ -54,28 +68,24 @@ class ScheduledMeeting:
         for value in self.guest_agents[1:]:
             guests_str = guests_str + ', ' + str(value)
 
-        return '{date: ' + self.date.isoformat() + '; time: ' + slots_str + '; host: ' + \
-               self.host_agent + '; guests: ' + guests_str + \
+        return '[date: ' + date_str + '; time: ' + slots_str + \
+               '; host: ' + self.host_agent + '; guests: ' + guests_str + \
                '; subject: ' + self.subject + '; location: ' + self.location + \
-               '; description: ' + self.description + '}'
+               '; description: ' + self.description + ']'
 
-
-class ScheduledDay:
-    date = None
-    scheduled_meetings = []
-
-    def __init__(self, year, month, day):
-        self.date = datetime.date(year, month, day)
-
-    def add_meeting(self, meeting):
-        self.scheduled_meetings.append(meeting)
+        # return 'date: ' + date_str + '\ntime: ' + slots_str + \
+        #        '\nhost: ' + self.host_agent + '\nguests: ' + guests_str + \
+        #        '\nsubject: ' + self.subject + '\nlocation: ' + self.location + '\ndescription: ' + self.description
 
 
 class UserCalendar:
-    scheduled_days = []
-    global_slot_preference = {}
+    scheduled_meetings = None
+    global_slot_preference = None
 
     def __init__(self):
+        self.scheduled_meetings = []
+        self.global_slot_preference = {}
+
         self.init_global_slot_preference(int(get_config('default', 'slot_division')))
 
     def init_global_slot_preference(self, slot_num):
@@ -84,8 +94,32 @@ class UserCalendar:
 
 
 if __name__ == '__main__':
-    c = UserCalendar()
-    for k, v in c.global_slot_preference.items():
-        print(k, v)
+    # c = UserCalendar()
+    # for k, v in c.global_slot_preference.items():
+    #     print(k, v)
 
-    print(json.dumps(c))
+    meeting = ScheduledMeeting(6, 30, 2021)
+    meeting.set_time_slots(23, 24)
+    meeting.set_participants('meeting-alice@404.city', 'meeting-bob@404.city', 'meeting-calvin@404.city')
+    meeting.set_information('master thesis', 'ms team', 'talk about the project')
+
+    print(meeting)
+
+    d = json.dumps(meeting, default=lambda o: o.__dict__
+                   # , sort_keys=True
+                   # , indent=4
+                   )
+    o = json.loads(d)
+
+    print(d)
+    print(type(o), o)
+    print(o.get('time_slots'))
+
+    step = 0
+
+    if step == 0:
+        print(step)
+        step = 1
+        print(step)
+    elif step == 1:
+        print(step)
