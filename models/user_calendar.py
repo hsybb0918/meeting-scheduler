@@ -92,6 +92,13 @@ class UserCalendar:
         for i in range(0, slot_num):
             self.global_slot_preference[i] = 5
 
+    def check_time_slots(self, slots):
+        for slot in slots:
+            if self.global_slot_preference[slot] == 0:
+                return False
+        return True
+
+
 
 if __name__ == '__main__':
     # c = UserCalendar()

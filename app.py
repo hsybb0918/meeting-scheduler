@@ -14,6 +14,7 @@ guest_agent_1 = MeetingAgent('meeting-bob@404.city', 'meeting-bob')
 guest_agent_2 = MeetingAgent('meeting-calvin@404.city', 'meeting-calvin')
 
 
+
 # guest_agent_2.start()
 
 
@@ -25,6 +26,7 @@ def hello_world():
     host_agent.start()
     guest_agent_1.start()
     guest_agent_2.start()
+    guest_agent_2.set_time_slots_preference({23: 0})
     return render_template('index.html', msg='agent')
 
 
