@@ -47,13 +47,19 @@ if __name__ == "__main__":
     #
     # quit_spade()
 
-    d = {'a': [5, 6], 'b': [3, 9], 'c': [7, 2], 'd': [7, 9], 'e': [6, 9]}
-    c = {}
+    # d = {'a': [5, 6], 'b': [3, 9], 'c': [7, 2], 'd': [7, 9], 'e': [6, 9]}
+    # c = {}
+    #
+    # print(sorted(d.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True))
+    #
+    # sort_tuple = sorted(d.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
+    # for i in range(5):
+    #     c[sort_tuple[i][0]] = sort_tuple[i][1][0]
+    # print(c)
 
-    print(sorted(d.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True))
+    # a = {1:4, 5:2, 7:3}
+    # b = {1:5, 3:6, 2:4}
+    # print(list(set(a.keys()).intersection(set(b.keys()))))
 
-    sort_tuple = sorted(d.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
-    for i in range(5):
-        c[sort_tuple[i][0]] = sort_tuple[i][1][0]
-    print(c)
+    print(0+2.0)
 

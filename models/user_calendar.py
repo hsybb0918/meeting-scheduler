@@ -98,6 +98,9 @@ class UserCalendar:
                 return False
         return True
 
+    def get_preference_at_slot(self, slot):
+        return self.global_slot_preference[slot]
+
 
 
 if __name__ == '__main__':
