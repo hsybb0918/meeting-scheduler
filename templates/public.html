@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1">
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport'>
+    <link rel="apple-touch-icon" sizes="76x76" href="/img/apple-icon.png">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+    <title>Meeting Scheduler</title>
+
+    <!-- Fonts and icons -->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+
+    <!-- CSS files -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/now-ui-dashboard.css" rel="stylesheet">
+
+    <style type="text/css">
+        .black-overlay {
+            display: none;
+            position: absolute;
+            top: 0%;
+            left: 0%;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            z-index: 100001;
+            opacity: 0.6;
+        }
+
+        .white-content {
+            display: none;
+            position: absolute;
+            border-radius: .1875rem;
+            background-color: white;
+            z-index: 100002;
+            overflow: auto;
+        }
+
+        #light {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 300px;
+            height: 280px;
+            margin-left: -150px;
+            margin-top: -140px;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <!-- Change the color of the sidebar using: data-color="blue|green|orange|red|yellow" -->
+        <div class="sidebar" data-color="orange">
+            <div class="logo">
+                <a class="simple-text logo-mini" style="pointer-events: none; width: auto">MAMS</a>
+                <a class="simple-text logo-normal" style="pointer-events: none">Agent List</a>
+            </div>
+            <div class="sidebar-wrapper" id="sidebar-wrapper">
+                <ul class="nav">
+                    {% for agent in agents %}
+                        <li>
+                            <a href="./user.html">
+                                <i class="now-ui-icons users_single-02"></i>
+                                <p>{{ agent.name }}</p>
+                            </a>
+                        </li>
+                    {% endfor %}
+                    <li>
+                        <a id="agent-add" style="background: rgba(255,255,255,0.3)">
+                            <i class="now-ui-icons ui-1_simple-add"></i>
+                            <p>Add Agent</p>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="main-panel" id="main-panel">
+
+            {% block content %}
+
+            {% endblock %}
+
+        </div>
+    </div>
+
+    <div class="popup-add">
+        <div id="light" class="white-content">
+            <h4 class="card-title" style="margin: 15px 0">Add Agent</h4>
+            <div>
+                <input id="agent-email" type="email" class="form-control" placeholder="your_jid@xmpp_server" style="margin: 10px 0">
+                <input id="agent-password" type="password" class="form-control" placeholder="your_password" style="margin: 10px 0">
+                <small id="agent-help" class="form-text" style="color: red; margin: 10px 0">&nbsp;Could not authenticate the agent.&nbsp;</small>
+
+                <button id="agent-confirm" class="btn btn-primary" style="margin-right: 10px">Confirm</button>
+                <button id="agent-cancel" class="btn btn-primary btn-outline-primary" style="margin-left: 10px">Cancel</button>
+            </div>
+        </div>
+        <div id="fade" class="black-overlay"></div>
+    </div>
+
+    <!-- Core JS files -->
+    <script src="/js/core/jquery.min.js"></script>
+    <script src="/js/core/popper.min.js"></script>
+    <script src="/js/core/bootstrap.min.js"></script>
+    <script src="/js/plugins/perfect-scrollbar.jquery.min.js"></script>
+    <script src="/js/plugins/bootstrap-notify.js"></script>
+
+    <!-- Control center for Now UI Dashboard -->
+    <script src="/js/now-ui-dashboard.js"></script>
+    
+    <script>
+        $(function () {
+            $.ajax({
+                url: "/agents",
+                type: "get",
+                success: function (data) {
+                    console.log(data)
+                }
+            });
+        })
+    </script>
+
+    <script>
+        $("#agent-add").on("click", function () {
+            $("#light").css("display", "block");
+            $("#fade").css("display", "block");
+        });
+
+        $("#agent-cancel").on("click", function () {
+            $("#light").css("display", "none");
+            $("#fade").css("display", "none");
+        });
+    </script>
+</body>
+
+</html>

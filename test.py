@@ -1,65 +1,25 @@
 # @File        : test.py
 # @Description :
-# @Time        : 29 June, 2021
+# @Time        : 07 July, 2021
 # @Author      : Cyan
 
-import asyncio
-import datetime
-import time
+from datetime import datetime, timedelta
 
-from spade.agent import Agent
-from spade.behaviour import OneShotBehaviour
-from spade import quit_spade
+appointments = [(datetime(2012, 5, 22, 10), datetime(2012, 5, 22, 10, 30)),
+                (datetime(2012, 5, 22, 12), datetime(2012, 5, 22, 13)),
+                (datetime(2012, 5, 22, 15, 30), datetime(2012, 5, 22, 17, 00))]
 
+hours = (datetime(2012, 5, 22, 9), datetime(2012, 5, 22, 20))
 
-class DummyAgent(Agent):
-    class LongBehav(OneShotBehaviour):
-        async def run(self):
-            await asyncio.sleep(5)
-            print("Long Behaviour has finished")
-
-    class WaitingBehav(OneShotBehaviour):
-        async def run(self):
-            print(self.agent.behav)
-            await self.agent.behav.join()  # this join must be awaited
-            print("Waiting Behaviour has finished")
-
-    async def setup(self):
-        print("Agent starting . . .")
-        self.behav = self.LongBehav()
-        self.add_behaviour(self.behav)
-        self.behav2 = self.WaitingBehav()
-        self.add_behaviour(self.behav2)
-
+def get_slots(hours, appointments, duration=timedelta(hours=1), division=timedelta(minutes=30)):
+    slots = sorted([(hours[0], hours[0])] + appointments + [(hours[1], hours[1])])
+    for start, end in ((slots[i][1], slots[i+1][0]) for i in range(len(slots)-1)):
+        # print(start, end)
+        assert start <= end, "Cannot attend all appointments"
+        # print(start+duration)
+        while start + duration <= end:
+            print("{:%H:%M} - {:%H:%M}".format(start, start + duration))
+            start += division
 
 if __name__ == "__main__":
-    # dummy = DummyAgent('meeting-bob@404.city', 'meeting-bob')
-    # future = dummy.start()
-    # future.result()
-    #
-    # while True:
-    #     pass
-
-    # dummy.behav2.join()  # this join must not be awaited
-    #
-    # print("Stopping agent.")
-    # dummy.stop()
-    #
-    # quit_spade()
-
-    # d = {'a': [5, 6], 'b': [3, 9], 'c': [7, 2], 'd': [7, 9], 'e': [6, 9]}
-    # c = {}
-    #
-    # print(sorted(d.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True))
-    #
-    # sort_tuple = sorted(d.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
-    # for i in range(5):
-    #     c[sort_tuple[i][0]] = sort_tuple[i][1][0]
-    # print(c)
-
-    # a = {1:4, 5:2, 7:3}
-    # b = {1:5, 3:6, 2:4}
-    # print(list(set(a.keys()).intersection(set(b.keys()))))
-
-    print(0+2.0)
-
+    get_slots(hours, appointments)

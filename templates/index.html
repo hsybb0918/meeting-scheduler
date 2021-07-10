@@ -1,13 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-    <h1>Hello</h1>
-    <form action="/foo" method="post">
-        <button>Propose</button>
-    </form>
-</body>
-</html>
+{% extends 'public.html' %}
+{% block content %}
+
+<!-- Top navbar -->
+<nav class="navbar navbar-expand-lg navbar-transparent bg-primary navbar-absolute">
+    <div class="container-fluid">
+        <div class="navbar-wrapper">
+            <div class="navbar-toggle">
+                <button type="button" class="navbar-toggler">
+                    <span class="navbar-toggler-bar bar1"></span>
+                    <span class="navbar-toggler-bar bar2"></span>
+                    <span class="navbar-toggler-bar bar3"></span>
+                </button>
+            </div>
+            <a class="navbar-brand" style="pointer-events: none">Multi-Agent Meeting Scheduler</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Panel header -->
+<div class="panel-header">
+     <div class="header text-center">
+         <h2 class="title">Negotiation Strategies</h2>
+         <p class="category">Three negotiation strategies are implemented in the framework.</p>
+     </div>
+</div>
+
+<!-- Main content -->
+<div class="content">
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card card-chart">
+                <div class="card-header">
+                    <h5 class="card-category">Strategy One</h5>
+                    <h4 class="card-title">Simple Match</h4>
+                </div>
+                <div class="card-body">
+                    <div class="typography-line">
+                        <p>I will be the leader of a company that ends up being worth billions of dollars, because I got the answers. I understand culture. I am the nucleus. I think that’s a responsibility that I have, to push possibilities, to show people, this is the level that things could be at</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card card-chart">
+                <div class="card-header">
+                    <h5 class="card-category">Strategy Two</h5>
+                    <h4 class="card-title">Counterproposal</h4>
+                </div>
+                <div class="card-body">
+                    <div class="typography-line">
+                        <p>I will be the leader of a company that ends up being worth billions of dollars, because I got the answers. I understand culture. I am the nucleus. I think that’s a responsibility that I have, to push possibilities, to show people, this is the level that things could be at</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card card-chart">
+                <div class="card-header">
+                    <h5 class="card-category">Strategy Three</h5>
+                    <h4 class="card-title">Voting</h4>
+                </div>
+                <div class="card-body">
+                    <div class="typography-line">
+                        <p>I will be the leader of a company that ends up being worth billions of dollars, because I got the answers. I understand culture. I am the nucleus. I think that’s a responsibility that I have, to push possibilities, to show people, this is the level that things could be at</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

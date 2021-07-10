@@ -5,7 +5,6 @@
 import datetime
 import json
 
-from models.utils import get_config
 
 
 class ScheduledMeeting:
@@ -86,7 +85,7 @@ class UserCalendar:
         self.scheduled_meetings = []
         self.global_slot_preference = {}
 
-        self.init_global_slot_preference(int(get_config('default', 'slot_division')))
+        self.init_global_slot_preference(48)
 
     def init_global_slot_preference(self, slot_num):
         for i in range(0, slot_num):

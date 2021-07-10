@@ -4,15 +4,17 @@
 # @Author      : Cyan
 import asyncio
 import json
+import aiosasl
 from collections import Counter
 
+from OpenSSL.SSL import Error
 from spade import agent
+from spade.agent import AuthenticationFailure
 from spade.behaviour import CyclicBehaviour, PeriodicBehaviour, OneShotBehaviour
 from spade.message import Message
 from spade.template import Template
 
 from models.user_calendar import UserCalendar, ScheduledMeeting
-from models.utils import get_config
 
 
 class MeetingAgent(agent.Agent):
@@ -372,12 +374,10 @@ class MeetingAgent(agent.Agent):
                             if slot_preference[slot + i] == 0:
                                 is_available = False
 
-
                         if is_available:
                             return_voting[slot] = total_preference / slot_num
                         else:
                             return_voting[slot] = 0
-
 
                     # prepare reply message
                     voting_msg_reply = Message()
@@ -436,11 +436,9 @@ class MeetingAgent(agent.Agent):
 
                 self.agent.proposed_meeting = None
 
-
                 # back to the first behaviour
                 self.agent.add_behaviour(self.agent.ResponseRequest())
                 self.kill()
-
 
         async def on_end(self):
             print('response confirmation end')
@@ -482,7 +480,7 @@ class MeetingAgent(agent.Agent):
 
         proposed_start = self.proposed_meeting.time_slots[0]
         slot_num = len(self.proposed_meeting.time_slots)
-        for start in range(int(get_config('default', 'slot_division')) - slot_num + 1):
+        for start in range(48 - slot_num + 1):
             is_available = True
             preference_total = 0
             for i in range(slot_num):
@@ -494,7 +492,7 @@ class MeetingAgent(agent.Agent):
             if is_available:
                 preference_avg = round(preference_total / slot_num, 1)
                 distance = abs(start - proposed_start)
-                counter_distance = int(get_config('default', 'slot_division')) - distance
+                counter_distance = 48 - distance
 
                 available_slots[start] = [preference_avg, counter_distance]
 
@@ -529,7 +527,7 @@ class MeetingAgent(agent.Agent):
             return slots_common[0]
         else:
             best_preference = 0
-            best_distance = int(get_config('default', 'slot_division')) * participant_num
+            best_distance = 48 * participant_num
             best_slot = None
 
             for slot in slots_common:
@@ -558,7 +556,7 @@ class MeetingAgent(agent.Agent):
 
         proposed_start = self.proposed_meeting.time_slots[0]
         slot_num = len(self.proposed_meeting.time_slots)
-        for start in range(int(get_config('default', 'slot_division')) - slot_num + 1):
+        for start in range(48 - slot_num + 1):
             is_available = True
             preference_total = 0
             for i in range(slot_num):
@@ -570,7 +568,7 @@ class MeetingAgent(agent.Agent):
             if is_available:
                 preference_avg = round(preference_total / slot_num, 1)
                 distance = abs(start - proposed_start)
-                counter_distance = int(get_config('default', 'slot_division')) - distance
+                counter_distance = 48 - distance
 
                 available_slots[start] = [preference_avg, counter_distance]
 
@@ -612,7 +610,7 @@ class MeetingAgent(agent.Agent):
             return total_preference_dict[0]
         else:
             best_preference = 0
-            best_distance = int(get_config('default', 'slot_division')) * participant_num
+            best_distance = 48 * participant_num
             best_slot = None
 
             for slot in total_preference_dict:
@@ -635,16 +633,28 @@ class MeetingAgent(agent.Agent):
 
             return best_slot
 
-
-
-
+# def start_agent():
+#     try:
+#         host_agent = MeetingAgent('meeting-alice@404.city', 'meeting-alice')
+#         host_agent.start().result()
+#     except:
+#         raise
 
 if __name__ == '__main__':
-    host_agent = MeetingAgent('meeting-alice@404.city', 'meeting-alice')
-    host_agent.start()
+    try:
+        host_agent = MeetingAgent('meeting-alice@404.city', 'meeting-alice')
+        host_agent.start().result()
+        # asyncio.get_event_loop()
+    except:
+        print('error')
+    else:
+        print('success')
 
-    guest_agent_1 = MeetingAgent('meeting-bob@404.city', 'meeting-bob')
-    guest_agent_1.start()
+    # host_agent = MeetingAgent('meeting-alice@404.city', 'meeting-alice')
+    # host_agent.start().result()
 
-    guest_agent_2 = MeetingAgent('meeting-calvin@404.city', 'meeting-calvin')
-    guest_agent_2.start()
+    # guest_agent_1 = MeetingAgent('meeting-bob@404.city', 'meeting-bob')
+    # guest_agent_1.start()
+    #
+    # guest_agent_2 = MeetingAgent('meeting-calvin@404.city', 'meeting-calvin')
+    # guest_agent_2.start()
