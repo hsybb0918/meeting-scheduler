@@ -20,13 +20,13 @@
 <!-- Panel header -->
 <div class="panel-header">
      <div class="header text-center">
-         <h2 class="title">Negotiation Strategies</h2>
+         <h2 class="title" style="margin-bottom: 10px">Negotiation Strategies</h2>
          <p class="category">Three negotiation strategies are implemented in the framework.</p>
      </div>
 </div>
 
 <!-- Main content -->
-<div class="content">
+<div class="content" style="margin-top: -70px">
     <div class="row">
         <div class="col-lg-4">
             <div class="card card-chart">
@@ -69,5 +69,17 @@
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block csscode %}
+
+<style>
+@media only screen and (max-device-width: 480px) {
+    .category {
+        display:none;
+    }
+}
+</style>
 
 {% endblock %}

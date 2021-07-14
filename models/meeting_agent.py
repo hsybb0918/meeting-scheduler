@@ -4,6 +4,8 @@
 # @Author      : Cyan
 import asyncio
 import json
+from datetime import datetime, time
+
 import aiosasl
 from collections import Counter
 
@@ -18,38 +20,53 @@ from models.user_calendar import UserCalendar, ScheduledMeeting
 
 
 class MeetingAgent(agent.Agent):
-    user_calendar = None
+    user_calendar = None  # user calendar object
 
-    is_host = None
-    proposed_meeting = None
+    proposed_meeting = None  # scheduled meeting object
+    receivers = None  # list of jid string
+
+    is_host = None  # boolean
+
+
 
     class ProposeRequest(CyclicBehaviour):
-        async def on_start(self):
-            print('request start')
-
         async def run(self):
             # if the agent propose a meeting
             if self.agent.is_host:
-                print('{} -> proposed meeting: {}'.format(self.agent.jid, self.agent.proposed_meeting))
+                print('{} -> proposed meeting [{}]'.format(self.agent.jid, self.agent.proposed_meeting))
 
-                # START simple match process
-                meeting_json = json.dumps(self.agent.proposed_meeting, default=lambda o: o.__dict__)
-                meeting_load = json.loads(meeting_json)
-                print('{} -> {}'.format(self.agent.jid, meeting_load))
+                # prepare data
+                data = json.dumps({
+                    'year': self.agent.proposed_meeting.get_year(),
+                    'month': self.agent.proposed_meeting.get_month(),
+                    'day': self.agent.proposed_meeting.get_day(),
+                    'start_hour': self.agent.proposed_meeting.get_start_hour(),
+                    'start_minute': self.agent.proposed_meeting.get_start_minute(),
+                    'end_hour': self.agent.proposed_meeting.get_end_hour(),
+                    'end_minute': self.agent.proposed_meeting.get_end_minute(),
+                    'subject': self.agent.proposed_meeting.subject,
+                    'location': self.agent.proposed_meeting.subject,
+                    'description': self.agent.proposed_meeting.subject
+                })
+
+                # meeting_json = json.dumps(self.agent.proposed_meeting, default=lambda o: o.__dict__)
+                # meeting_load = json.loads(meeting_json)
+                # print('{} -> transferred message [{}]'.format(self.agent.jid, data))
 
                 # prepare message
                 request_msg = Message()
-                request_msg.body = meeting_json
+                request_msg.body = data
                 request_msg.thread = 'simple-match'
                 request_msg.set_metadata('performative', 'query')
 
                 # send message to all guest agents
-                for to in self.agent.proposed_meeting.guest_agents:
+                for to in self.agent.receivers:
                     request_msg.to = to
                     await self.send(request_msg)
                     print('{} -> send the meeting request to {}'.format(self.agent.jid, to))
 
                 self.agent.is_host = False
+
                 # add next behavior
                 self.agent.add_behaviour(self.agent.ProposeCounterproposal())
                 # kill the behaviour
@@ -62,51 +79,50 @@ class MeetingAgent(agent.Agent):
             self.set_template(reply_msg_mt)
 
             # message reply count
-            message_count = len(self.agent.proposed_meeting.guest_agents)
+            message_count = len(self.agent.receivers)
             agree_count = 0
 
             # receive all replies
             if self.mailbox_size() == message_count:
+                # count agree number
                 for i in range(message_count):
                     reply_msg_receive = await self.receive()
 
-                    print('{} -> reply from {}: {}'.format(self.agent.jid, reply_msg_receive.sender,
-                                                           reply_msg_receive.get_metadata('performative')))
+                    print('{} -> reply from {} [{}]'.format(self.agent.jid, reply_msg_receive.sender,
+                                                            reply_msg_receive.get_metadata('performative')))
 
                     if reply_msg_receive.get_metadata('performative') == 'agree':
                         agree_count += 1
 
+                # if not all agree, propose counterproposal
                 if agree_count != message_count:
-                    # propose counterproposal
-                    print('{} -> propose the counterproposal'.format(self.agent.jid))
-
                     counterproposal_msg = Message()
                     counterproposal_msg.thread = 'counterproposal-process'
                     counterproposal_msg.set_metadata('performative', 'query')
 
-                    for to in self.agent.proposed_meeting.guest_agents:
+                    for to in self.agent.receivers:
                         counterproposal_msg.to = to
                         await self.send(counterproposal_msg)
                         print('{} -> propose the counterproposal to {}'.format(self.agent.jid, to))
 
                     # add next behaviour
                     self.agent.add_behaviour(self.agent.ProposeVoting())
-                else:
-                    # success, confirm the meeting
-                    print('{} -> send the meeting confirmation'.format(self.agent.jid))
 
+                # if all agree, send confirmation
+                else:
                     success_msg = Message()
                     success_msg.thread = 'counterproposal-process'
                     success_msg.set_metadata('performative', 'inform')
 
-                    for to in self.agent.proposed_meeting.guest_agents:
+                    for to in self.agent.receivers:
                         success_msg.to = to
                         await self.send(success_msg)
                         print('{} -> send the meeting confirmation to {}'.format(self.agent.jid, to))
 
-                    # add the proposed meeting and clear the variable
+                    # add the proposed meeting and clear the variables
                     self.agent.add_meeting(self.agent.proposed_meeting)
                     self.agent.proposed_meeting = None
+                    self.agent.receivers = None
 
                     # back to the first behaviour
                     self.agent.add_behaviour(self.agent.ProposeRequest())
@@ -121,7 +137,7 @@ class MeetingAgent(agent.Agent):
             self.set_template(reply_msg_mt)
 
             # message reply count
-            message_count = len(self.agent.proposed_meeting.guest_agents)
+            message_count = len(self.agent.receivers)
 
             # receive all replies
             if self.mailbox_size() == message_count:
@@ -131,16 +147,20 @@ class MeetingAgent(agent.Agent):
                     reply_msg_receive = await self.receive()
 
                     counterproposal = json.loads(reply_msg_receive.body)
-                    counterproposal = {int(k): v for k, v in counterproposal.items()}
                     counterproposals.append(counterproposal)
 
-                    print('{} -> reply from {}: {}'.format(self.agent.jid, reply_msg_receive.sender, counterproposal))
+                    print('{} -> reply from {} [{}]'.format(self.agent.jid, reply_msg_receive.sender, counterproposal))
 
-                counterproposals.append(self.agent.find_counterproposal_slots())
+                self_choice = self.agent.find_counterproposal_slots(self.agent.proposed_meeting.start_time
+                                                                    , self.agent.proposed_meeting.end_time)
+                print('{} -> self choice [{}]'.format(self.agent.jid, self_choice))
+                counterproposals.append(self_choice)
+
                 best_slot = self.agent.check_counterproposal_availability(counterproposals)
 
                 if best_slot is None:
                     # propose voting
+                    print('{} -> cannot find the intersection time'.format(self.agent.jid))
                     print('{} -> propose the voting'.format(self.agent.jid))
 
                     voting_msg = Message()
@@ -148,20 +168,25 @@ class MeetingAgent(agent.Agent):
                     voting_msg.set_metadata('performative', 'query')
 
                     # prepare voting options
-                    print('{} -> voting slots: {}'.format(self.agent.jid, list(self.agent.find_voting_slots())))
+                    voting_choice = self.agent.find_voting_slots(self.agent.proposed_meeting.start_time
+                                                                 , self.agent.proposed_meeting.end_time)
 
-                    voting_msg.body = json.dumps(list(self.agent.find_voting_slots().keys()))
+                    # print('{} -> voting choices with preference [{}]'.format(self.agent.jid, voting_choice))
 
-                    for to in self.agent.proposed_meeting.guest_agents:
+                    voting_msg.body = json.dumps(list(voting_choice.keys()))
+                    print('{} -> voting choices [{}]'.format(self.agent.jid, list(voting_choice.keys())))
+
+                    for to in self.agent.receivers:
                         voting_msg.to = to
                         await self.send(voting_msg)
-                        print('{} -> propose the voting to {}'.format(self.agent.jid, to))
+                        print('{} -> send the voting choices to {}'.format(self.agent.jid, to))
 
                     # add next behaviour
                     self.agent.add_behaviour(self.agent.ProposeConfirmation())
+
                 else:
                     # success, confirm the meeting
-                    print('{} -> send the meeting confirmation at slot {}'.format(self.agent.jid, best_slot))
+                    print('{} -> find the intersection time at {}'.format(self.agent.jid, best_slot))
 
                     success_msg = Message()
                     success_msg.thread = 'voting-process'
@@ -175,11 +200,12 @@ class MeetingAgent(agent.Agent):
                     # add the proposed meeting and clear the variable
                     self.agent.add_meeting(self.agent.proposed_meeting)
                     self.agent.proposed_meeting = None
+                    self.agent.receivers = None
 
                     # back to the first behaviour
                     self.agent.add_behaviour(self.agent.ProposeRequest())
 
-                    # kill this behaviour
+                # kill this behaviour
                 self.kill()
 
     class ProposeConfirmation(CyclicBehaviour):
@@ -189,23 +215,27 @@ class MeetingAgent(agent.Agent):
             self.set_template(reply_msg_mt)
 
             # message reply count
-            message_count = len(self.agent.proposed_meeting.guest_agents)
+            message_count = len(self.agent.receivers)
 
             # receive all replies
             if self.mailbox_size() == message_count:
-
                 voting_results = []
 
                 for i in range(message_count):
                     reply_msg_receive = await self.receive()
 
                     voting_result = json.loads(reply_msg_receive.body)
-                    voting_result = {int(k): v for k, v in voting_result.items()}
                     voting_results.append(voting_result)
 
-                    print('{} -> reply from {}: {}'.format(self.agent.jid, reply_msg_receive.sender, voting_result))
+                    print('{} -> reply from {} [{}]'.format(self.agent.jid, reply_msg_receive.sender, voting_result))
 
-                voting_results.append(self.agent.find_voting_slots())
+                self_voting = self.agent.find_voting_slots(self.agent.proposed_meeting.start_time
+                                                           , self.agent.proposed_meeting.end_time)
+                voting_results.append(self_voting)
+
+                print('{} -> self voting [{}]'.format(self.agent.jid, self_voting))
+
+                self.agent.check_voting_availability(voting_results)
                 best_slot = self.agent.check_voting_availability(voting_results)
 
                 final_msg = Message()
@@ -213,48 +243,43 @@ class MeetingAgent(agent.Agent):
 
                 if best_slot is None:
                     # failed to schedule the meeting
-                    print('{} -> failed to schedule the meeting'.format(self.agent.jid))
+                    print('{} -> failed to schedule the meeting in the final process'.format(self.agent.jid))
 
                     final_msg.set_metadata('performative', 'failure')
-
-                    # add next behaviour
-                    self.agent.add_behaviour(self.agent.ProposeRequest())
                 else:
                     # success, confirm the meeting
-                    print('{} -> schedule the meeting at slot {}'.format(self.agent.jid, best_slot))
+                    print('{} -> successfully schedule the meeting at {}'.format(self.agent.jid, best_slot))
 
                     final_msg.set_metadata('performative', 'inform')
 
                     # add the proposed meeting
                     self.agent.add_meeting(self.agent.proposed_meeting)
 
-                    # back to the first behaviour
-                    self.agent.add_behaviour(self.agent.ProposeRequest())
-
-                for to in self.agent.proposed_meeting.guest_agents:
+                # send the final message
+                for to in self.agent.receivers:
                     final_msg.to = to
                     await self.send(final_msg)
                     print('{} -> send the final decision to {}'.format(self.agent.jid, to))
 
-                # clear the variable
+                # clear the meeting variables
                 self.agent.proposed_meeting = None
+                self.agent.receivers = None
+
+                # back to the first behaviour
+                self.agent.add_behaviour(self.agent.ProposeRequest())
 
                 # kill this behaviour
                 self.kill()
 
-            # for to in self.agent.proposed_meeting.guest_agents:
-            #     confirm_msg.to = to
-            #     await self.send(confirm_msg)
-            #     print('{} -> send the meeting confirmation to {}'.format(self.agent.jid, to))
-
         async def on_end(self):
-            print('confirm meeting end')
+            print('propose confirmation end')
 
     class ResponseRequest(CyclicBehaviour):
         async def on_start(self):
-            print('response request start')
+            print('response request')
 
         async def run(self):
+            pass
             # set request message template
             request_msg_mt = Template()
             request_msg_mt.thread = 'simple-match'
@@ -267,16 +292,16 @@ class MeetingAgent(agent.Agent):
                 print('{} -> receive the meeting request from {}'.format(self.agent.jid, request_msg_receive.sender))
 
                 # create the meeting and store locally
-                meeting_dict = json.loads(request_msg_receive.body)
+                data = json.loads(request_msg_receive.body)
 
-                meeting = ScheduledMeeting(meeting_dict['month'], meeting_dict['day'], meeting_dict['year'])
-                meeting.set_time_slots_from_list(meeting_dict['time_slots'])
-                meeting.set_host(meeting_dict['host_agent'])
-                meeting.set_guests_from_list(meeting_dict['guest_agents'])
-                meeting.set_information(meeting_dict['subject'], meeting_dict['location'], meeting_dict['description'])
+                start_time = datetime(data['year'], data['month'], data['day'], data['start_hour'],
+                                      data['start_minute'])
+                end_time = datetime(data['year'], data['month'], data['day'], data['end_hour'], data['end_minute'])
+
+                meeting = ScheduledMeeting(start_time, end_time, data['subject'], data['location'], data['description'])
                 self.agent.proposed_meeting = meeting
 
-                print('{} -> requested meeting: {}'.format(self.agent.jid, self.agent.proposed_meeting))
+                print('{} -> requested meeting [{}]'.format(self.agent.jid, self.agent.proposed_meeting))
 
                 # prepare reply message
                 request_msg_reply = Message()
@@ -284,7 +309,7 @@ class MeetingAgent(agent.Agent):
                 request_msg_reply.thread = 'simple-match-reply'
 
                 # check if the time is available
-                if self.agent.check_time_availability():
+                if self.agent.check_time_availability(start_time, end_time):
                     print('{} -> requested time is available'.format(self.agent.jid))
                     request_msg_reply.set_metadata('performative', 'agree')
                 else:
@@ -322,15 +347,19 @@ class MeetingAgent(agent.Agent):
                     counterproposal_msg_reply.to = str(counterproposal_msg_receive.sender)
                     counterproposal_msg_reply.thread = 'counterproposal-process-reply'
 
-                    counterproposal_msg_reply.body = json.dumps(self.agent.find_counterproposal_slots())
+                    counterproposal = json.dumps(
+                        self.agent.find_counterproposal_slots(self.agent.proposed_meeting.start_time,
+                                                              self.agent.proposed_meeting.end_time))
+                    counterproposal_msg_reply.body = counterproposal
 
-                    print('{} -> {}'.format(self.agent.jid, json.dumps(self.agent.find_counterproposal_slots())))
+                    print('{} -> counterproposal [{}]'.format(self.agent.jid, counterproposal))
 
                     # send the reply message
                     await self.send(counterproposal_msg_reply)
 
                     # add response voting behaviour
                     self.agent.add_behaviour(self.agent.ResponseVoting())
+
                 elif counterproposal_metadata == 'inform':
                     # success
                     print('{} -> receive the meeting confirmation'.format(self.agent.jid))
@@ -338,13 +367,20 @@ class MeetingAgent(agent.Agent):
                     # add the proposed meeting and clear the variable
                     self.agent.add_meeting(self.agent.proposed_meeting)
                     self.agent.proposed_meeting = None
+                    self.agent.receivers = None
 
                     # back to the first behaviour
                     self.agent.add_behaviour(self.agent.ResponseRequest())
 
                 self.kill()
 
+        async def on_end(self):
+            print('{} -> response counterproposal behavior end'.format(self.agent.jid))
+
     class ResponseVoting(CyclicBehaviour):
+        async def on_start(self):
+            print('response voting start')
+
         async def run(self):
             voting_msg_mt = Template()
             voting_msg_mt.thread = 'voting-process'
@@ -357,36 +393,21 @@ class MeetingAgent(agent.Agent):
 
                 if voting_metadata == 'query':
                     # voting
-                    print('{} -> response voting'.format(self.agent.jid))
+                    voting_choice = json.loads(voting_msg_receive.body)
+                    print('{} -> receive voting request for [{}]'.format(self.agent.jid, voting_choice))
 
-                    voting_slots = json.loads(voting_msg_receive.body)
-
-                    slot_num = len(self.agent.proposed_meeting.time_slots)
-                    slot_preference = self.agent.user_calendar.global_slot_preference
-                    # start_slot = self.agent.proposed_meeting.time_slots[0]
-
-                    return_voting = {}
-                    for slot in voting_slots:
-                        is_available = True
-                        total_preference = 0
-                        for i in range(slot_num):
-                            total_preference += slot_preference[slot + i]
-                            if slot_preference[slot + i] == 0:
-                                is_available = False
-
-                        if is_available:
-                            return_voting[slot] = total_preference / slot_num
-                        else:
-                            return_voting[slot] = 0
+                    voting_result = self.agent.voting_for_choices(voting_choice
+                                                                  , self.agent.proposed_meeting.start_time.date()
+                                                                  , self.agent.proposed_meeting.end_time - self.agent.proposed_meeting.start_time)
 
                     # prepare reply message
                     voting_msg_reply = Message()
                     voting_msg_reply.to = str(voting_msg_receive.sender)
                     voting_msg_reply.thread = 'voting-process-reply'
 
-                    voting_msg_reply.body = json.dumps(return_voting)
+                    voting_msg_reply.body = json.dumps(voting_result)
 
-                    print('{} -> returned voting: {}'.format(self.agent.jid, json.dumps(return_voting)))
+                    print('{} -> voting result [{}]'.format(self.agent.jid, json.dumps(voting_result)))
 
                     # send the reply message
                     await self.send(voting_msg_reply)
@@ -401,6 +422,7 @@ class MeetingAgent(agent.Agent):
                     # add the proposed meeting and clear the variable
                     self.agent.add_meeting(self.agent.proposed_meeting)
                     self.agent.proposed_meeting = None
+                    self.agent.receivers = None
 
                     # back to the first behaviour
                     self.agent.add_behaviour(self.agent.ResponseRequest())
@@ -408,7 +430,7 @@ class MeetingAgent(agent.Agent):
                 self.kill()
 
         async def on_end(self):
-            print('response counterproposal end')
+            print('{} -> response voting end'.format(self.agent.jid))
 
     class ResponseConfirmation(CyclicBehaviour):
         async def on_start(self):
@@ -419,242 +441,250 @@ class MeetingAgent(agent.Agent):
             final_msg_mt.thread = 'final-process'
             self.set_template(final_msg_mt)
 
-            # receive the voting message
+            # receive the final message
             if self.mailbox_size() == 1:
                 final_msg_receive = await self.receive()
 
                 decision = final_msg_receive.get_metadata('performative')
 
                 if decision == 'failure':
-                    print('{} -> failed to schedule the meeting'.format(self.agent.jid))
+                    print('{} -> schedule the meeting successfully'.format(self.agent.jid))
                 elif decision == 'inform':
-                    print('{} -> success to schedule the meeting'.format(self.agent.jid))
+                    print('{} -> schedule the meeting successfully'.format(self.agent.jid))
 
-                    # add the proposed meeting and clear the variable
-                    # todo
+                    # add the proposed meeting
                     self.agent.add_meeting(self.agent.proposed_meeting)
 
+                # clear the meeting variables
                 self.agent.proposed_meeting = None
+                self.agent.receivers = None
 
                 # back to the first behaviour
                 self.agent.add_behaviour(self.agent.ResponseRequest())
+                # kill the current behaviour
                 self.kill()
 
         async def on_end(self):
             print('response confirmation end')
 
-    def __init__(self, jid, password, verify_security=False):
-        super().__init__(jid, password, verify_security)
+    def __init__(self, jid, password, user_calendar):
+        super().__init__(jid, password)
 
-        self.user_calendar = UserCalendar()
+        self.user_calendar = user_calendar
         self.is_host = False
 
     async def setup(self):
         # start the agent
-        print('{}: start'.format(str(self.jid)))
+        print('{} -> start'.format(str(self.jid)))
 
         # add two types of behaviours
         self.add_behaviour(self.ProposeRequest())
         self.add_behaviour(self.ResponseRequest())
 
-    def add_meeting(self, meeting):
-        self.user_calendar.scheduled_meetings.append(meeting)
-        print('{} -> schedule the meeting successfully'.format(self.jid))
-        print('{} -> now the number of meetings: {}'.format(self.jid, len(self.user_calendar.scheduled_meetings)))
-
     def propose_meeting(self, meeting):
         self.proposed_meeting = meeting
+        self.receivers = meeting.guest_agents
         self.is_host = True
 
-    def check_time_availability(self):
-        proposed_time_slots = self.proposed_meeting.time_slots
-        return self.user_calendar.check_time_slots(proposed_time_slots)
+    def add_meeting(self, meeting):
+        self.user_calendar.add_meeting(meeting)
+        # todo: database insert
+        print('{} -> schedule the meeting successfully'.format(self.jid))
+        print('{} -> now the number of meetings is {}'.format(self.jid, len(self.user_calendar.schedules)))
 
-    def set_time_slots_preference(self, dictionary):
-        for slot, pref in dictionary.items():
-            self.user_calendar.global_slot_preference[slot] = pref
+    def check_time_availability(self, start, end):
+        if self.user_calendar.has_conflict_schedules(start, end):
+            print('{} -> conflict schedules'.format(self.jid))
+            return False
+        if self.user_calendar.has_conflict_offices(start, end):
+            print('{} -> conflict offices'.format(self.jid))
+            return False
+        if self.user_calendar.has_conflict_preferences(start, end):
+            print('{} -> conflict preferences'.format(self.jid))
+            return False
 
-    def find_counterproposal_slots(self):
+        return True
+
+    def find_counterproposal_slots(self, start, end):
         # consider proposed meeting and no more than 5
-        available_slots = {}
+        return self.user_calendar.find_free_slots(start, end, 5)
 
-        proposed_start = self.proposed_meeting.time_slots[0]
-        slot_num = len(self.proposed_meeting.time_slots)
-        for start in range(48 - slot_num + 1):
-            is_available = True
-            preference_total = 0
-            for i in range(slot_num):
-                preference_total += self.user_calendar.global_slot_preference[start + i]
+    def check_counterproposal_availability(self, counters):
+        counter_list = []
+        for counter in counters:
+            counter_list.append(list(counter.keys()))
 
-                if self.user_calendar.global_slot_preference[start + i] == 0:
-                    is_available = False
+        counter_intersection = list(set.intersection(*map(set, counter_list)))
+        # print(counter_intersection)
 
-            if is_available:
-                preference_avg = round(preference_total / slot_num, 1)
-                distance = abs(start - proposed_start)
-                counter_distance = 48 - distance
-
-                available_slots[start] = [preference_avg, counter_distance]
-
-        # sort and choose (5 + slot_num) slot range
-        return_slots = {}
-
-        sorted_slots = sorted(available_slots.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
-        for i in range(5 + slot_num):
-            return_slots[sorted_slots[i][0]] = sorted_slots[i][1][0]
-
-        return return_slots
-
-    def check_counterproposal_availability(self, counterproposals):
-        participant_num = len(self.proposed_meeting.guest_agents) + 1
-        proposed_start = self.proposed_meeting.time_slots[0]
-
-        slots_all = []
-        for counterproposal in counterproposals:
-            slots_all.extend(counterproposal.keys())
-
-        counter_all = Counter(slots_all)
-        print(counter_all)
-
-        slots_common = [int(k) for k, v in counter_all.items() if v >= participant_num]
-
-        print(counterproposals)
-        print(slots_common)
-
-        if len(slots_common) == 0:
+        if len(counter_intersection) == 0:
             return None
-        elif len(slots_common) == 1:
-            return slots_common[0]
         else:
-            best_preference = 0
-            best_distance = 48 * participant_num
-            best_slot = None
+            m_dt = self.proposed_meeting.start_time
 
-            for slot in slots_common:
-                cur_preference = 0
+            best_p = 0
+            best_d = None
+            best_c = None
 
-                for i in range(participant_num):
-                    cur_preference += counterproposals[i][slot]
+            for c in counter_intersection:
+                total_p = 0
+                for i in range(len(counters)):
+                    total_p += counters[i][c]
 
-                cur_distance = abs(slot - proposed_start)
+                c_dt = datetime.combine(m_dt.date(), time(int(c.split(':')[0]), int(c.split(':')[1])))
 
-                print(slot, cur_preference, cur_distance)
+                if total_p > best_p:
+                    best_p = total_p
+                    best_d = abs(m_dt - c_dt)
+                    best_c = c_dt
+                elif total_p == best_p:
+                    if abs(m_dt - c_dt) < best_d:
+                        best_d = abs(m_dt - c_dt)
+                        best_c = c_dt
 
-                if cur_preference > best_preference:
-                    best_preference = cur_preference
-                    best_distance = cur_distance
-                    best_slot = slot
-                elif cur_preference == best_preference and cur_distance < best_distance:
-                    best_distance = cur_distance
-                    best_slot = slot
+            return best_c
 
-            # return best_slot
-            return None
+    def find_voting_slots(self, start, end):
+        return self.user_calendar.find_free_slots(start, end, 10)
 
-    def find_voting_slots(self):
-        available_slots = {}
+        # available_slots = {}
+        #
+        # proposed_start = self.proposed_meeting.time_slots[0]
+        # slot_num = len(self.proposed_meeting.time_slots)
+        # for start in range(48 - slot_num + 1):
+        #     is_available = True
+        #     preference_total = 0
+        #     for i in range(slot_num):
+        #         preference_total += self.user_calendar.global_slot_preference[start + i]
+        #
+        #         if self.user_calendar.global_slot_preference[start + i] == 0:
+        #             is_available = False
+        #
+        #     if is_available:
+        #         preference_avg = round(preference_total / slot_num, 1)
+        #         distance = abs(start - proposed_start)
+        #         counter_distance = 48 - distance
+        #
+        #         available_slots[start] = [preference_avg, counter_distance]
+        #
+        # # sort and choose 10 slot range
+        # return_slots = {}
+        #
+        # sorted_slots = sorted(available_slots.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
+        # for i in range(10):
+        #     return_slots[sorted_slots[i][0]] = sorted_slots[i][1][0]
+        #
+        # return return_slots
 
-        proposed_start = self.proposed_meeting.time_slots[0]
-        slot_num = len(self.proposed_meeting.time_slots)
-        for start in range(48 - slot_num + 1):
-            is_available = True
-            preference_total = 0
-            for i in range(slot_num):
-                preference_total += self.user_calendar.global_slot_preference[start + i]
+    def voting_for_choices(self, choices, date, duration):
+        voting_result = {}
 
-                if self.user_calendar.global_slot_preference[start + i] == 0:
-                    is_available = False
+        for choice in choices:
+            meeting_time = time(int(choice.split(':')[0]), int(choice.split(':')[1]))
+            dt_start = datetime.combine(date, meeting_time)
+            dt_end = dt_start + duration
 
-            if is_available:
-                preference_avg = round(preference_total / slot_num, 1)
-                distance = abs(start - proposed_start)
-                counter_distance = 48 - distance
+            choice_preference = self.user_calendar.compute_total_preference(dt_start, dt_end)
+            # print(dt_start, dt_end, choice_preference)
 
-                available_slots[start] = [preference_avg, counter_distance]
+            voting_result[choice] = choice_preference
 
-        # sort and choose 10 slot range
-        return_slots = {}
-
-        sorted_slots = sorted(available_slots.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
-        for i in range(10):
-            return_slots[sorted_slots[i][0]] = sorted_slots[i][1][0]
-
-        return return_slots
+        return voting_result
 
     def check_voting_availability(self, voting_results):
-        print(voting_results)
-        participant_num = len(voting_results)
-        proposed_start = self.proposed_meeting.time_slots[0]
+        keys = list(voting_results[0].keys())
 
-        total_preference_dict = {}
-        slot_list = voting_results[0].keys()
+        available_voting = {}
 
-        for slot in slot_list:
-            zero_preference = False
+        for key in keys:
             total_preference = 0
+            has_zero = False
+            for voting in voting_results:
+                if voting[key] == 0:
+                    has_zero = True
+                else:
+                    total_preference += voting[key]
+            if not has_zero:
+                available_voting[key] = total_preference
 
-            for i in range(participant_num):
-                total_preference += voting_results[i][slot]
+        # print(voting_results, '\n', available_voting)
 
-                if voting_results[i][slot] == 0:
-                    zero_preference = True
-
-            if not zero_preference:
-                total_preference_dict[slot] = total_preference
-
-        print(total_preference_dict)
-
-        if len(total_preference_dict) == 0:
+        # sort available_voting
+        if len(available_voting) == 0:
             return None
-        elif len(total_preference_dict) == 1:
-            return total_preference_dict[0]
         else:
-            best_preference = 0
-            best_distance = 48 * participant_num
-            best_slot = None
+            best_p = 0  # best preference
+            best_d = None  # best distance
+            best_v = None  # best voting key
 
-            for slot in total_preference_dict:
-                cur_preference = 0
+            for k, v in available_voting.items():
+                voting_dt = datetime.combine(self.proposed_meeting.start_time.date(), time(int(k.split(':')[0]), int(k.split(':')[1])))
 
-                for i in range(participant_num):
-                    cur_preference += voting_results[i][slot]
+                if v > best_p:
+                    best_p = v
+                    best_d = abs(self.proposed_meeting.start_time - voting_dt)
+                    best_v = voting_dt
+                elif v == best_p:
+                    if abs(self.proposed_meeting.start_time - voting_dt) < best_d:
+                        best_d = abs(self.proposed_meeting.start_time - voting_dt)
+                        best_v = voting_dt
 
-                cur_distance = abs(slot - proposed_start)
+            # print('best voting time', best_v)
 
-                print(slot, cur_preference, cur_distance)
+            return best_v
 
-                if cur_preference > best_preference:
-                    best_preference = cur_preference
-                    best_distance = cur_distance
-                    best_slot = slot
-                elif cur_preference == best_preference and cur_distance < best_distance:
-                    best_distance = cur_distance
-                    best_slot = slot
 
-            return best_slot
 
-# def start_agent():
-#     try:
-#         host_agent = MeetingAgent('meeting-alice@404.city', 'meeting-alice')
-#         host_agent.start().result()
-#     except:
-#         raise
+        # participant_num = len(voting_results)
+        # proposed_start = self.proposed_meeting.time_slots[0]
+        #
+        # total_preference_dict = {}
+        # slot_list = voting_results[0].keys()
+        #
+        # for slot in slot_list:
+        #     zero_preference = False
+        #     total_preference = 0
+        #
+        #     for i in range(participant_num):
+        #         total_preference += voting_results[i][slot]
+        #
+        #         if voting_results[i][slot] == 0:
+        #             zero_preference = True
+        #
+        #     if not zero_preference:
+        #         total_preference_dict[slot] = total_preference
+        #
+        # print(total_preference_dict)
+        #
+        # if len(total_preference_dict) == 0:
+        #     return None
+        # elif len(total_preference_dict) == 1:
+        #     return total_preference_dict[0]
+        # else:
+        #     best_preference = 0
+        #     best_distance = 48 * participant_num
+        #     best_slot = None
+        #
+        #     for slot in total_preference_dict:
+        #         cur_preference = 0
+        #
+        #         for i in range(participant_num):
+        #             cur_preference += voting_results[i][slot]
+        #
+        #         cur_distance = abs(slot - proposed_start)
+        #
+        #         print(slot, cur_preference, cur_distance)
+        #
+        #         if cur_preference > best_preference:
+        #             best_preference = cur_preference
+        #             best_distance = cur_distance
+        #             best_slot = slot
+        #         elif cur_preference == best_preference and cur_distance < best_distance:
+        #             best_distance = cur_distance
+        #             best_slot = slot
+        #
+        #     return best_slot
+
 
 if __name__ == '__main__':
-    try:
-        host_agent = MeetingAgent('meeting-alice@404.city', 'meeting-alice')
-        host_agent.start().result()
-        # asyncio.get_event_loop()
-    except:
-        print('error')
-    else:
-        print('success')
-
-    # host_agent = MeetingAgent('meeting-alice@404.city', 'meeting-alice')
-    # host_agent.start().result()
-
-    # guest_agent_1 = MeetingAgent('meeting-bob@404.city', 'meeting-bob')
-    # guest_agent_1.start()
-    #
-    # guest_agent_2 = MeetingAgent('meeting-calvin@404.city', 'meeting-calvin')
-    # guest_agent_2.start()
+    pass

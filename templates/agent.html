@@ -12,7 +12,7 @@
                     <span class="navbar-toggler-bar bar3"></span>
                 </button>
             </div>
-            <a class="navbar-brand" style="pointer-events: none">Multi-Agent Meeting Scheduler</a>
+            <a id="agent-id" agent-id="{{ agent.agent_id }}" class="navbar-brand" style="pointer-events: none">{{ agent.email }}</a>
         </div>
     </div>
 </nav>
@@ -21,7 +21,7 @@
 <div class="panel-header panel-header-sm"></div>
 
 <!-- Main content -->
-<div class="content">
+<div class="content" style="margin-top: -70px">
     <div class="row">
         <div class="col-md-12">
             <div class="card">
@@ -30,22 +30,37 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
+                        {% if meetings != None %}
                         <table class="table">
                             <thead class="text-primary">
-                                <th>Name</th>
-                                <th>Country</th>
-                                <th>City</th>
-                                <th class="text-right">Salary</th>
+                                <th>Time</th>
+                                <th>Subject</th>
+                                <th>Location</th>
+                                <th class="text-right">Actions</th>
                             </thead>
                             <tbody>
+                                {% for meeting in meetings %}
                                 <tr>
-                                    <td>Dakota Rice</td>
-                                    <td>Niger</td>
-                                    <td>Oud-Turnhout</td>
-                                    <td class="text-right">$36,738</td>
+                                    <td>{{ meeting.start_time | start_cut }} - {{ meeting.end_time | end_cut }}</td>
+                                    <td>{{ meeting.subject }}</td>
+                                    <td>{{ meeting.location }}</td>
+                                    <td class="td-actions text-right">
+                                        <button meeting-id="{{ meeting.meeting_id }}" type="button" rel="tooltip" class="btn btn-info btn-sm btn-icon meeting-detail">
+                                            <i class="now-ui-icons ui-1_calendar-60"></i>
+                                        </button>
+                                        <button meeting-id="{{ meeting.meeting_id }}" type="button" rel="tooltip" class="btn btn-danger btn-sm btn-icon meeting-delete">
+                                            <i class="now-ui-icons ui-1_simple-remove"></i>
+                                        </button>
+                                    </td>
                                 </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
+                        {% endif %}
+
+                        {% if meetings == None %}
+                        There are no meetings in the schedule.
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -55,57 +70,287 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Propose Meetings</h4>
+                    <h4 class="card-title">Request Meetings</h4>
                 </div>
                 <div class="card-body">
-                    <form>
-                        <div class="row">
-                            <div class="col-md-5 pr-1">
-                                <div class="form-group">
-                                    <label>Company (disabled)</label>
-                                    <input type="text" class="form-control" disabled="" placeholder="Company" value="Creative Code Inc.">
-                                </div>
-                            </div>
-                            <div class="col-md-3 px-1">
-                                <div class="form-group">
-                                    <label>Username</label>
-                                    <input type="text" class="form-control" placeholder="Username" value="michael23">
-                                </div>
-                            </div>
-                            <div class="col-md-4 pl-1">
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1">Email address</label>
-                                    <input type="email" class="form-control" placeholder="Email">
-                                </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="start-time">Start Time *</label>
+                                <input type="text" class="form-control" id="start-time">
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 pr-1">
-                                <div class="form-group">
-                                    <label>First Name</label>
-                                    <input type="text" class="form-control" placeholder="Company" value="Mike">
-                                </div>
-                            </div>
-                            <div class="col-md-6 pl-1">
-                                <div class="form-group">
-                                    <label>Last Name</label>
-                                    <input type="text" class="form-control" placeholder="Last Name" value="Andrew">
-                                </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="end-time">End Time *</label>
+                                <input type="text" class="form-control" id="end-time">
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label>Address</label>
-                                    <input type="text" class="form-control" placeholder="Home Address" value="Bld Mihail Kogalniceanu, nr. 8 Bl 1, Sc 1, Ap 09">
-                                </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="date-picker">Date *</label>
+                                <input type="text" class="form-control" id="date-picker">
                             </div>
                         </div>
-                    </form>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="subject">Subject *</label>
+                                <input type="text" class="form-control" id="subject">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="location">Location *</label>
+                                <input type="text" class="form-control" id="location">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="description">Description</label>
+                                <input type="text" class="form-control" id="description">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group" id="guest-check">
+                                <label>Meeting Participants *</label>
+                                {% for other in others %}
+                                <div class="form-check" style="padding-left: 0">
+                                    <label class="form-check-label">
+                                        <input class="form-check-input" type="checkbox" value="{{ other.agent_id }}">
+                                        {{ other.email }}
+                                        <span class="form-check-sign"><span class="check"></span></span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row pull-right">
+                        <div class="col-md-12">
+                            <button id="request-meeting" class="btn btn-primary btn-round">Start Request</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block popup %}
+
+<div class="popup-detail">
+    <div id="detail-light" class="white-content">
+        <h4 class="card-title" style="margin: 15px 0">Meeting Detail</h4>
+        <div style="text-align: left; margin: 15px 0">
+            <span><b>Time</b>&nbsp;&nbsp;&nbsp;<span id="detail-time"></span></span><br>
+            <span><b>Subject</b>&nbsp;&nbsp;&nbsp;<span id="detail-subject"></span></span><br>
+            <span><b>Location</b>&nbsp;&nbsp;&nbsp;<span id="detail-location"></span></span><br>
+            <span><b>Description</b>&nbsp;&nbsp;&nbsp;<span id="detail-description"></span></span><br>
+            <span><b>Participants</b>&nbsp;&nbsp;&nbsp;<span id="participants"></span></span><br>
+        </div>
+        <button id="detail-ok" class="btn btn-primary">OK</button>
+    </div>
+    <div id="detail-fade" class="black-overlay"></div>
+</div>
+
+<div class="popup-delete">
+    <div id="delete-light" class="white-content">
+        <div style="margin: 15px 0">
+            <span>Are you sure to cancel the meeting?</span>
+        </div>
+        <button id="delete-confirm" meeting-id="" class="btn btn-primary" style="margin-right: 10px">Confirm</button>
+        <button id="delete-cancel" class="btn btn-primary btn-outline-primary" style="margin-left: 10px">Cancel</button>
+    </div>
+    <div id="delete-fade" class="black-overlay"></div>
+</div>
+
+{% endblock %}
+
+{% block jscode %}
+
+<script>
+    $("#date-picker").datepicker({
+        autoclose: true,
+        todayHighlight: true
+    });
+
+    $("#start-time").timepicker({
+        minuteStep: 30,
+        snapToStep: true,
+        showMeridian: false,
+        showInputs: false
+    });
+
+    $("#end-time").timepicker({
+        minuteStep: 30,
+        showMeridian: false,
+        showInputs: false
+    });
+
+    $(".meeting-detail").on("click", function () {
+        $("#detail-light").css("display", "block");
+        $("#detail-fade").css("display", "block");
+
+        $.ajax({
+            url: "/api/meeting/" + $(this).attr("meeting-id"),
+            type: "get",
+            success: function (data) {
+                var par = data.participants[0]
+                for (var i = 1; i < data.participants.length; i++) {
+                    par += ", " + data.participants[i]
+                }
+                $("#detail-time").text(data.time_range)
+                $("#detail-subject").text(data.subject)
+                $("#detail-location").text(data.location)
+                $("#detail-description").text(data.description)
+                $("#participants").text(par)
+            }
+        })
+    });
+
+    $("#detail-ok").on("click", function () {
+        $("#detail-light").css("display", "none");
+        $("#detail-fade").css("display", "none");
+    });
+
+    $(".meeting-delete").on("click", function () {
+        $("#delete-light").css("display", "block");
+        $("#delete-fade").css("display", "block");
+
+        $("#delete-confirm").attr("meeting-id", $(this).attr("meeting-id"))
+    });
+
+    $("#delete-confirm").on("click", function () {
+        $.ajax({
+            url: "/api/meeting/" + $("#delete-confirm").attr("meeting-id"),
+            type: "delete",
+            data: {
+                "agent_id": $("#agent-id").attr("agent-id")
+            },
+            success: function (data) {
+                if (data.code == 200) {
+                    $("#delete-light").css("display", "none");
+                    $("#delete-fade").css("display", "none");
+
+                    location.reload()
+                } else if (data.code == 400) {
+                    $("#delete-light").css("display", "none");
+                    $("#delete-fade").css("display", "none");
+                    $.notify({
+                        icon: "now-ui-icons ui-1_bell-53",
+                        message: data.message
+                    }, {
+                        type: "primary",
+                        timer: 3000,
+                        placement: {
+                            from: "bottom",
+                            align: "center"
+                        },
+                        z_index: 100003
+                    });
+                }
+            }
+        })
+    });
+
+    $("#delete-cancel").on("click", function () {
+        $("#delete-light").css("display", "none");
+        $("#delete-fade").css("display", "none");
+    });
+
+    $("#request-meeting").on("click", function () {
+        var start = $("#start-time").val();
+        var end = $("#end-time").val();
+        var date = $("#date-picker").val();
+        var subject = $("#subject").val();
+        var location = $("#location").val();
+        var description = $("#description").val();
+
+        var host = $("#agent-id").attr("agent-id")
+
+        var guest_check = $("#guest-check input")
+        var guests_id = new Array()
+
+        guest_check.each(function (index) {
+            if ($(this).prop("checked") == true) {
+                guests_id[index] = $(this).attr("value")
+            }
+        })
+
+        if ($.trim(start).length == 0 || $.trim(end).length == 0 ||
+            $.trim(date).length == 0 || $.trim(subject).length == 0 ||
+            $.trim(location).length == 0 || guests_id.length == 0) {
+            $.notify({
+                icon: "now-ui-icons ui-1_bell-53",
+                message: 'The input boxes with stars cannot be empty!'
+            }, {
+                type: "primary",
+                timer: 3000,
+                placement: {
+                    from: "bottom",
+                    align: "center"
+                },
+                z_index: 100003
+            });
+        } else {
+            $.ajax({
+                url: "/api/request",
+                type: "post",
+                dataType: "json",
+                data: {
+                    "start": start,
+                    "end": end,
+                    "date": date,
+                    "subject": subject,
+                    "location": location,
+                    "description": description,
+                    "host_id": host,
+                    "guests_id": JSON.stringify(guests_id)
+                },
+                success: function (data) {
+                    console.log(data)
+                }
+            })
+        }
+    })
+</script>
+
+{% endblock %}
+
+{% block csscode %}
+
+<style type="text/css">
+    #detail-light {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 460px;
+        height: 300px;
+        margin-left: -230px;
+        margin-top: -150px;
+        padding: 10px 20px;
+        text-align: center;
+    }
+
+    #delete-light {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 300px;
+        height: 140px;
+        margin-left: -150px;
+        margin-top: -70px;
+        padding: 10px 20px;
+        text-align: center;
+    }
+</style>
 
 {% endblock %}

@@ -17,6 +17,12 @@
     <!-- CSS files -->
     <link href="/css/bootstrap.min.css" rel="stylesheet">
     <link href="/css/now-ui-dashboard.css" rel="stylesheet">
+    <link href="/css/bootstrap-datepicker.css" rel="stylesheet">
+    <link href="/css/bootstrap-timepicker.css" rel="stylesheet">
+
+    {% block csscode %}
+
+    {% endblock %}
 
     <style type="text/css">
         .black-overlay {
@@ -40,14 +46,14 @@
             overflow: auto;
         }
 
-        #light {
+        #add-light {
             position: absolute;
             left: 50%;
             top: 50%;
             width: 300px;
-            height: 280px;
+            height: 260px;
             margin-left: -150px;
-            margin-top: -140px;
+            margin-top: -130px;
             padding: 20px;
             text-align: center;
         }
@@ -59,16 +65,16 @@
         <!-- Change the color of the sidebar using: data-color="blue|green|orange|red|yellow" -->
         <div class="sidebar" data-color="orange">
             <div class="logo">
-                <a class="simple-text logo-mini" style="pointer-events: none; width: auto">MAMS</a>
-                <a class="simple-text logo-normal" style="pointer-events: none">Agent List</a>
+                <a href="/" class="simple-text logo-mini" style="width: auto">MAMS</a>
+                <a href="/" class="simple-text logo-normal">HOME</a>
             </div>
             <div class="sidebar-wrapper" id="sidebar-wrapper">
-                <ul class="nav">
-                    {% for agent in agents %}
-                        <li>
-                            <a href="./user.html">
+                <ul class="nav" id="agent-list">
+                    {% for item in agents %}
+                        <li {% if agent != None %}{% if item.agent_id == agent.agent_id %} class="active" {% endif %}{% endif %}>
+                            <a href="/agent/{{ item.agent_id }}">
                                 <i class="now-ui-icons users_single-02"></i>
-                                <p>{{ agent.name }}</p>
+                                <p>{{ item.email | split_name }}</p>
                             </a>
                         </li>
                     {% endfor %}
@@ -92,19 +98,22 @@
     </div>
 
     <div class="popup-add">
-        <div id="light" class="white-content">
+        <div id="add-light" class="white-content">
             <h4 class="card-title" style="margin: 15px 0">Add Agent</h4>
             <div>
                 <input id="agent-email" type="email" class="form-control" placeholder="your_jid@xmpp_server" style="margin: 10px 0">
                 <input id="agent-password" type="password" class="form-control" placeholder="your_password" style="margin: 10px 0">
-                <small id="agent-help" class="form-text" style="color: red; margin: 10px 0">&nbsp;Could not authenticate the agent.&nbsp;</small>
 
                 <button id="agent-confirm" class="btn btn-primary" style="margin-right: 10px">Confirm</button>
                 <button id="agent-cancel" class="btn btn-primary btn-outline-primary" style="margin-left: 10px">Cancel</button>
             </div>
         </div>
-        <div id="fade" class="black-overlay"></div>
+        <div id="add-fade" class="black-overlay"></div>
     </div>
+
+    {% block popup %}
+
+    {% endblock %}
 
     <!-- Core JS files -->
     <script src="/js/core/jquery.min.js"></script>
@@ -112,33 +121,92 @@
     <script src="/js/core/bootstrap.min.js"></script>
     <script src="/js/plugins/perfect-scrollbar.jquery.min.js"></script>
     <script src="/js/plugins/bootstrap-notify.js"></script>
+    <script src="/js/plugins/bootstrap-datepicker.js"></script>
+    <script src="/js/plugins/bootstrap-timepicker.js"></script>
 
     <!-- Control center for Now UI Dashboard -->
     <script src="/js/now-ui-dashboard.js"></script>
     
     <script>
         $(function () {
-            $.ajax({
-                url: "/agents",
-                type: "get",
-                success: function (data) {
-                    console.log(data)
+            $("#agent-add").on("click", function () {
+                $("#add-light").css("display", "block");
+                $("#add-fade").css("display", "block");
+            });
+
+            $("#agent-cancel").on("click", function () {
+                $("#add-light").css("display", "none");
+                $("#add-fade").css("display", "none");
+            });
+
+            $("#agent-confirm").on("click", function() {
+                var agent_email = $("#agent-email").val();
+                var agent_password = $("#agent-password").val();
+
+                if ($.trim(agent_email).length == 0 || $.trim(agent_password).length == 0) {
+                    $.notify({
+                        icon: "now-ui-icons ui-1_bell-53",
+                        message: "Email or password cannot be blank!"
+                    }, {
+                        type: "primary",
+                        timer: 3000,
+                        placement: {
+                            from: "bottom",
+                            align: "center"
+                        },
+                        z_index: 100003
+                    });
+                } else {
+                    $.ajax({
+                        url: "/api/agents",
+                        type: "post",
+                        data: {
+                            "email": agent_email,
+                            "password": agent_password
+                        },
+                        success: function (data) {
+                            if (data.code == 200) {
+                                $("#light").css("display", "none");
+                                $("#fade").css("display", "none");
+
+                                location.reload()
+                            } else if (data.code == 300) {
+                                $.notify({
+                                    icon: "now-ui-icons ui-1_bell-53",
+                                    message: data.message
+                                }, {
+                                    type: "primary",
+                                    timer: 3000,
+                                    placement: {
+                                        from: "bottom",
+                                        align: "center"
+                                    },
+                                    z_index: 100003
+                                });
+                            } else if (data.code == 400) {
+                                $.notify({
+                                    icon: "now-ui-icons ui-1_bell-53",
+                                    message: data.message
+                                }, {
+                                    type: "primary",
+                                    timer: 3000,
+                                    placement: {
+                                        from: "bottom",
+                                        align: "center"
+                                    },
+                                    z_index: 100003
+                                });
+                            }
+                        }
+                    })
                 }
             });
         })
     </script>
 
-    <script>
-        $("#agent-add").on("click", function () {
-            $("#light").css("display", "block");
-            $("#fade").css("display", "block");
-        });
+    {% block jscode %}
 
-        $("#agent-cancel").on("click", function () {
-            $("#light").css("display", "none");
-            $("#fade").css("display", "none");
-        });
-    </script>
+    {% endblock %}
 </body>
 
 </html>
