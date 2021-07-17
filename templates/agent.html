@@ -1,4 +1,4 @@
-{% extends 'public.html' %}
+{% extends "public.html" %}
 {% block content %}
 
 <!-- Top navbar -->
@@ -140,6 +140,200 @@
             </div>
         </div>
     </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Office Time</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        {% if offices != None %}
+                        <table class="table">
+                            <thead class="text-primary">
+                                <th>From</th>
+                                <th>To</th>
+                                <th class="text-right">Actions</th>
+                            </thead>
+                            <tbody>
+                                {% for office in offices %}
+                                <tr>
+                                    <td>{{ office.start_time }}</td>
+                                    <td>{{ office.end_time }}</td>
+                                    <td class="td-actions text-right">
+                                        <button office-id="{{ office.office_id }}" type="button" rel="tooltip" class="btn btn-danger btn-sm btn-icon office-delete">
+                                            <i class="now-ui-icons ui-1_simple-remove"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% endif %}
+
+                        {% if offices == None %}
+                        No office time has been set.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Add Office Time</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="start-time">Start Time *</label>
+                                <input type="text" class="form-control" id="office-start">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="end-time">End Time *</label>
+                                <input type="text" class="form-control" id="office-end">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row pull-right">
+                        <div class="col-md-12">
+                            <button id="add-office" class="btn btn-primary btn-round">Add Office Time</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Preference Time</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        {% if preferences != None %}
+                        <table class="table">
+                            <thead class="text-primary">
+                                <th>From</th>
+                                <th>To</th>
+                                <th>Priority</th>
+                                <th>Date</th>
+                                <th class="text-right">Actions</th>
+                            </thead>
+                            <tbody>
+                                {% for preference in preferences %}
+                                <tr>
+                                    <td>{{ preference.start_time }}</td>
+                                    <td>{{ preference.end_time }}</td>
+                                    <td>{{ preference.priority }}</td>
+                                    {% if preference.is_local %}
+                                        <td>{{ preference.specified_date }}</td>
+                                    {% else %}
+                                    <td>Global</td>
+                                    {% endif %}
+                                    <td class="td-actions text-right">
+                                        <button preference-id="{{ preference.preference_id }}" type="button" rel="tooltip" class="btn btn-danger btn-sm btn-icon preference-delete">
+                                            <i class="now-ui-icons ui-1_simple-remove"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% endif %}
+
+                        {% if preferences == None %}
+                        No preferences have been set.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Add Preference</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="start-time">Start Time *</label>
+                                <input type="text" class="form-control" id="preference-start">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="end-time">End Time *</label>
+                                <input type="text" class="form-control" id="preference-end">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="date-picker">Priority *</label>
+                                <input type="text" class="form-control" id="preference-priority">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Local Preference</label>
+                                <div class="form-check" style="padding-left: 0">
+                                    <label class="form-check-label">
+                                        <input class="form-check-input" type="checkbox" id="preference-local">
+                                        Check if it is a local preference
+                                        <span class="form-check-sign"><span class="check"></span></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="location">Specified Date</label>
+                                <input type="text" class="form-control" id="preference-date">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row pull-right">
+                        <div class="col-md-12">
+                            <button id="add-preference" class="btn btn-primary btn-round">Add Preference</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Delete Agent</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <span>Note that you cannot delete an agent who has a meeting in the schedule. In addition, deleting the agent will also delete all user preferences that is related to it, including the office and preference settings.</span>
+                        </div>
+                    </div>
+                    <div class="row pull-right">
+                        <div class="col-md-12">
+                            <button id="agent-delete" class="btn btn-primary btn-round">Delete Agent</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 {% endblock %}
@@ -156,22 +350,63 @@
             <span><b>Description</b>&nbsp;&nbsp;&nbsp;<span id="detail-description"></span></span><br>
             <span><b>Participants</b>&nbsp;&nbsp;&nbsp;<span id="participants"></span></span><br>
         </div>
-        <button id="detail-ok" class="btn btn-primary">OK</button>
+        <button id="detail-ok" class="btn btn-primary" style="margin: 15px 0">OK</button>
     </div>
     <div id="detail-fade" class="black-overlay"></div>
 </div>
 
-<div class="popup-delete">
-    <div id="delete-light" class="white-content">
+<div class="popup-delete-meeting">
+    <div id="delete-meeting-light" class="white-content">
         <div style="margin: 15px 0">
             <span>Are you sure to cancel the meeting?</span>
         </div>
-        <button id="delete-confirm" meeting-id="" class="btn btn-primary" style="margin-right: 10px">Confirm</button>
-        <button id="delete-cancel" class="btn btn-primary btn-outline-primary" style="margin-left: 10px">Cancel</button>
+        <button id="delete-meeting-confirm" meeting-id="" class="btn btn-primary" style="margin-right: 10px">Confirm</button>
+        <button id="delete-meeting-cancel" class="btn btn-primary btn-outline-primary" style="margin-left: 10px">Cancel</button>
     </div>
-    <div id="delete-fade" class="black-overlay"></div>
+    <div id="delete-meeting-fade" class="black-overlay"></div>
 </div>
 
+<div class="popup-delete-agent">
+    <div id="delete-agent-light" class="white-content">
+        <div style="margin: 15px 0">
+            <span>Are you sure to delete the agent?</span>
+        </div>
+        <button id="delete-agent-confirm" class="btn btn-primary" style="margin-right: 10px">Confirm</button>
+        <button id="delete-agent-cancel" class="btn btn-primary btn-outline-primary" style="margin-left: 10px">Cancel</button>
+    </div>
+    <div id="delete-agent-fade" class="black-overlay"></div>
+</div>
+
+<div class="popup-delete-office">
+    <div id="delete-office-light" class="white-content">
+        <div style="margin: 15px 0">
+            <span>Are you sure to delete the office time?</span>
+        </div>
+        <button id="delete-office-confirm" class="btn btn-primary" style="margin-right: 10px">Confirm</button>
+        <button id="delete-office-cancel" class="btn btn-primary btn-outline-primary" style="margin-left: 10px">Cancel</button>
+    </div>
+    <div id="delete-office-fade" class="black-overlay"></div>
+</div>
+
+<div class="popup-delete-preference">
+    <div id="delete-preference-light" class="white-content">
+        <div style="margin: 15px 0">
+            <span>Are you sure to delete the preference?</span>
+        </div>
+        <button id="delete-preference-confirm" class="btn btn-primary" style="margin-right: 10px">Confirm</button>
+        <button id="delete-preference-cancel" class="btn btn-primary btn-outline-primary" style="margin-left: 10px">Cancel</button>
+    </div>
+    <div id="delete-preference-fade" class="black-overlay"></div>
+</div>
+
+<div class="popup-waiting">
+    <div id="waiting-light" class="white-content">
+        <div style="margin: 15px 0">
+            <span>Wait 5 seconds for negotiation...</span>
+        </div>
+    </div>
+    <div id="waiting-fade" class="black-overlay"></div>
+</div>
 {% endblock %}
 
 {% block jscode %}
@@ -191,9 +426,47 @@
 
     $("#end-time").timepicker({
         minuteStep: 30,
+        snapToStep: true,
         showMeridian: false,
         showInputs: false
     });
+
+
+
+    $("#office-start").timepicker({
+        minuteStep: 30,
+        snapToStep: true,
+        showMeridian: false,
+        showInputs: false
+    });
+
+    $("#office-end").timepicker({
+        minuteStep: 30,
+        snapToStep: true,
+        showMeridian: false,
+        showInputs: false
+    });
+
+    $("#preference-start").timepicker({
+        minuteStep: 30,
+        snapToStep: true,
+        showMeridian: false,
+        showInputs: false
+    });
+
+    $("#preference-end").timepicker({
+        minuteStep: 30,
+        snapToStep: true,
+        showMeridian: false,
+        showInputs: false
+    });
+
+    $("#preference-date").datepicker({
+        autoclose: true,
+        todayHighlight: true
+    });
+
+
 
     $(".meeting-detail").on("click", function () {
         $("#detail-light").css("display", "block");
@@ -221,29 +494,31 @@
         $("#detail-fade").css("display", "none");
     });
 
-    $(".meeting-delete").on("click", function () {
-        $("#delete-light").css("display", "block");
-        $("#delete-fade").css("display", "block");
 
-        $("#delete-confirm").attr("meeting-id", $(this).attr("meeting-id"))
+
+    $(".meeting-delete").on("click", function () {
+        $("#delete-meeting-light").css("display", "block");
+        $("#delete-meeting-fade").css("display", "block");
+
+        $("#delete-meeting-confirm").attr("meeting-id", $(this).attr("meeting-id"))
     });
 
-    $("#delete-confirm").on("click", function () {
+    $("#delete-meeting-confirm").on("click", function () {
         $.ajax({
-            url: "/api/meeting/" + $("#delete-confirm").attr("meeting-id"),
+            url: "/api/meeting/" + $("#delete-meeting-confirm").attr("meeting-id"),
             type: "delete",
             data: {
                 "agent_id": $("#agent-id").attr("agent-id")
             },
             success: function (data) {
                 if (data.code == 200) {
-                    $("#delete-light").css("display", "none");
-                    $("#delete-fade").css("display", "none");
+                    $("#delete-meeting-light").css("display", "none");
+                    $("#delete-meeting-fade").css("display", "none");
 
                     location.reload()
                 } else if (data.code == 400) {
-                    $("#delete-light").css("display", "none");
-                    $("#delete-fade").css("display", "none");
+                    $("#delete-meeting-light").css("display", "none");
+                    $("#delete-meeting-fade").css("display", "none");
                     $.notify({
                         icon: "now-ui-icons ui-1_bell-53",
                         message: data.message
@@ -261,36 +536,107 @@
         })
     });
 
-    $("#delete-cancel").on("click", function () {
-        $("#delete-light").css("display", "none");
-        $("#delete-fade").css("display", "none");
+    $("#delete-meeting-cancel").on("click", function () {
+        $("#delete-meeting-light").css("display", "none");
+        $("#delete-meeting-fade").css("display", "none");
     });
 
-    $("#request-meeting").on("click", function () {
-        var start = $("#start-time").val();
-        var end = $("#end-time").val();
-        var date = $("#date-picker").val();
-        var subject = $("#subject").val();
-        var location = $("#location").val();
-        var description = $("#description").val();
 
-        var host = $("#agent-id").attr("agent-id")
 
-        var guest_check = $("#guest-check input")
-        var guests_id = new Array()
+    $("#agent-delete").on("click", function () {
+        $("#delete-agent-light").css("display", "block");
+        $("#delete-agent-fade").css("display", "block");
+    });
 
-        guest_check.each(function (index) {
-            if ($(this).prop("checked") == true) {
-                guests_id[index] = $(this).attr("value")
+    $("#delete-agent-confirm").on("click", function () {
+        $.ajax({
+            url: "/api/agent/" + $("#agent-id").attr("agent-id"),
+            type: "delete",
+            success: function (data) {
+                if (data.code == 200) {
+                    $("#delete-agent-light").css("display", "none");
+                    $("#delete-agent-fade").css("display", "none");
+
+                    location.replace("/")
+                } else if (data.code == 400) {
+                    $("#delete-agent-light").css("display", "none");
+                    $("#delete-agent-fade").css("display", "none");
+                    $.notify({
+                        icon: "now-ui-icons ui-1_bell-53",
+                        message: data.message
+                    }, {
+                        type: "primary",
+                        timer: 3000,
+                        placement: {
+                            from: "bottom",
+                            align: "center"
+                        },
+                        z_index: 100003
+                    });
+                }
             }
         })
+    });
 
-        if ($.trim(start).length == 0 || $.trim(end).length == 0 ||
-            $.trim(date).length == 0 || $.trim(subject).length == 0 ||
-            $.trim(location).length == 0 || guests_id.length == 0) {
+    $("#delete-agent-cancel").on("click", function () {
+        $("#delete-agent-light").css("display", "none");
+        $("#delete-agent-fade").css("display", "none");
+    });
+
+
+
+    $(".office-delete").on("click", function () {
+        $("#delete-office-light").css("display", "block");
+        $("#delete-office-fade").css("display", "block");
+
+        $("#delete-office-confirm").attr("office-id", $(this).attr("office-id"))
+    });
+
+    $("#delete-office-confirm").on("click", function () {
+        $.ajax({
+            url: "/api/office/" + $("#delete-office-confirm").attr("office-id"),
+            type: "delete",
+            success: function (data) {
+                if (data.code == 200) {
+                    $("#delete-office-light").css("display", "none");
+                    $("#delete-office-fade").css("display", "none");
+
+                    location.reload()
+                } else if (data.code == 400) {
+                    $("#delete-office-light").css("display", "none");
+                    $("#delete-office-fade").css("display", "none");
+                    $.notify({
+                        icon: "now-ui-icons ui-1_bell-53",
+                        message: data.message
+                    }, {
+                        type: "primary",
+                        timer: 3000,
+                        placement: {
+                            from: "bottom",
+                            align: "center"
+                        },
+                        z_index: 100003
+                    });
+                }
+            }
+        })
+    });
+
+    $("#delete-office-cancel").on("click", function () {
+        $("#delete-office-light").css("display", "none");
+        $("#delete-office-fade").css("display", "none");
+    });
+
+    $("#add-office").on("click", function () {
+        var start = $("#office-start").val();
+        var end = $("#office-end").val();
+
+        var agent_id = $("#agent-id").attr("agent-id")
+
+        if ($.trim(start).length == 0 || $.trim(end).length == 0) {
             $.notify({
                 icon: "now-ui-icons ui-1_bell-53",
-                message: 'The input boxes with stars cannot be empty!'
+                message: "The input boxes with stars cannot be empty!"
             }, {
                 type: "primary",
                 timer: 3000,
@@ -302,6 +648,202 @@
             });
         } else {
             $.ajax({
+                url: "/api/offices/" + agent_id,
+                type: "post",
+                data: {
+                    "start": start,
+                    "end": end,
+                    "agent_id": agent_id
+                },
+                success: function (data) {
+                    if (data.code == 200) {
+                        location.reload()
+                    } else if (data.code == 400) {
+                        $.notify({
+                            icon: "now-ui-icons ui-1_bell-53",
+                            message: data.message
+                        }, {
+                            type: "primary",
+                            timer: 3000,
+                            placement: {
+                                from: "bottom",
+                                align: "center"
+                            },
+                            z_index: 100003
+                        });
+                    }
+                }
+            })
+        }
+    })
+
+
+
+    $(".preference-delete").on("click", function () {
+        $("#delete-preference-light").css("display", "block");
+        $("#delete-preference-fade").css("display", "block");
+
+        $("#delete-preference-confirm").attr("preference-id", $(this).attr("preference-id"))
+    });
+
+    $("#delete-preference-confirm").on("click", function () {
+        $.ajax({
+            url: "/api/preference/" + $("#delete-preference-confirm").attr("preference-id"),
+            type: "delete",
+            success: function (data) {
+                if (data.code == 200) {
+                    $("#delete-preference-light").css("display", "none");
+                    $("#delete-preference-fade").css("display", "none");
+
+                    location.reload()
+                } else if (data.code == 400) {
+                    $("#delete-preference-light").css("display", "none");
+                    $("#delete-preference-fade").css("display", "none");
+                    $.notify({
+                        icon: "now-ui-icons ui-1_bell-53",
+                        message: data.message
+                    }, {
+                        type: "primary",
+                        timer: 3000,
+                        placement: {
+                            from: "bottom",
+                            align: "center"
+                        },
+                        z_index: 100003
+                    });
+                }
+            }
+        })
+    });
+
+    $("#delete-preference-cancel").on("click", function () {
+        $("#delete-preference-light").css("display", "none");
+        $("#delete-preference-fade").css("display", "none");
+    });
+
+    $("#add-preference").on("click", function () {
+        var start = $("#preference-start").val();
+        var end = $("#preference-end").val();
+        var priority = $("#preference-priority").val();
+
+        var local = $("#preference-local").prop("checked")
+        var date = $("#preference-date").val();
+
+        var agent_id = $("#agent-id").attr("agent-id")
+
+        if ($.trim(start).length == 0 || $.trim(end).length == 0 || $.trim(priority).length == 0) {
+            $.notify({
+                icon: "now-ui-icons ui-1_bell-53",
+                message: "The input boxes with stars cannot be empty!"
+            }, {
+                type: "primary",
+                timer: 3000,
+                placement: {
+                    from: "bottom",
+                    align: "center"
+                },
+                z_index: 100003
+            });
+        } else if (!Number.isInteger(parseInt(priority)) || parseInt(priority) < 0 || parseInt(priority) > 10) {
+            $.notify({
+                icon: "now-ui-icons ui-1_bell-53",
+                message: "Priority must be an integer from 0 to 10!"
+            }, {
+                type: "primary",
+                timer: 3000,
+                placement: {
+                    from: "bottom",
+                    align: "center"
+                },
+                z_index: 100003
+            });
+        } else if (local == true && $.trim(date).length == 0) {
+            $.notify({
+                icon: "now-ui-icons ui-1_bell-53",
+                message: "The specified date cannot be empty if it is a local preference!"
+            }, {
+                type: "primary",
+                timer: 3000,
+                placement: {
+                    from: "bottom",
+                    align: "center"
+                },
+                z_index: 100003
+            });
+        } else {
+            $.ajax({
+                url: "/api/preferences/" + agent_id,
+                type: "post",
+                data: {
+                    "start": start,
+                    "end": end,
+                    "priority": parseInt(priority),
+                    "local": local,
+                    "date": date
+                },
+                success: function (data) {
+                    if (data.code == 200) {
+                        location.reload()
+                    } else if (data.code == 400) {
+                        $.notify({
+                            icon: "now-ui-icons ui-1_bell-53",
+                            message: data.message
+                        }, {
+                            type: "primary",
+                            timer: 3000,
+                            placement: {
+                                from: "bottom",
+                                align: "center"
+                            },
+                            z_index: 100003
+                        });
+                    }
+                }
+            })
+        }
+    })
+
+
+
+    $("#request-meeting").on("click", function () {
+        var start = $("#start-time").val();
+        var end = $("#end-time").val();
+        var date = $("#date-picker").val();
+        var subject = $("#subject").val();
+        var locat = $("#location").val();
+        var description = $("#description").val();
+
+        var host = $("#agent-id").attr("agent-id")
+
+        var guest_check = $("#guest-check input")
+        var guests_id = new Array()
+
+        guest_check.each(function (index) {
+            if ($(this).prop("checked") == true) {
+                guests_id.push($(this).attr("value"))
+            }
+        })
+
+        if ($.trim(start).length == 0 || $.trim(end).length == 0 ||
+            $.trim(date).length == 0 || $.trim(subject).length == 0 ||
+            $.trim(locat).length == 0 || guests_id.length == 0) {
+            $.notify({
+                icon: "now-ui-icons ui-1_bell-53",
+                message: "The input boxes with stars cannot be empty!"
+            }, {
+                type: "primary",
+                timer: 3000,
+                placement: {
+                    from: "bottom",
+                    align: "center"
+                },
+                z_index: 100003
+            });
+        } else {
+            $("#waiting-light").css("display", "block");
+            $("#waiting-fade").css("display", "block");
+
+            $.ajax({
                 url: "/api/request",
                 type: "post",
                 dataType: "json",
@@ -310,13 +852,31 @@
                     "end": end,
                     "date": date,
                     "subject": subject,
-                    "location": location,
+                    "location": locat,
                     "description": description,
                     "host_id": host,
                     "guests_id": JSON.stringify(guests_id)
                 },
                 success: function (data) {
-                    console.log(data)
+
+                    if (data.code == 200) {
+                        location.reload()
+                    } else {
+                        $("#waiting-light").css("display", "none");
+                        $("#waiting-fade").css("display", "none");
+                        $.notify({
+                            icon: "now-ui-icons ui-1_bell-53",
+                            message: data.message
+                        }, {
+                            type: "primary",
+                            timer: 3000,
+                            placement: {
+                                from: "bottom",
+                                align: "center"
+                            },
+                            z_index: 100003
+                        });
+                    }
                 }
             })
         }
@@ -332,22 +892,34 @@
         position: absolute;
         left: 50%;
         top: 50%;
-        width: 460px;
+        width: 400px;
         height: 300px;
-        margin-left: -230px;
+        margin-left: -200px;
         margin-top: -150px;
         padding: 10px 20px;
         text-align: center;
     }
 
-    #delete-light {
+    #delete-meeting-light, #delete-office-light, #delete-preference-light, #delete-agent-light {
         position: absolute;
         left: 50%;
         top: 50%;
-        width: 300px;
+        width: 320px;
         height: 140px;
-        margin-left: -150px;
+        margin-left: -160px;
         margin-top: -70px;
+        padding: 10px 20px;
+        text-align: center;
+    }
+
+    #waiting-light {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 320px;
+        height: 80px;
+        margin-left: -160px;
+        margin-top: -40px;
         padding: 10px 20px;
         text-align: center;
     }

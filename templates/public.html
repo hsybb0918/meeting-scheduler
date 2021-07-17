@@ -5,7 +5,7 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1">
-    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport'>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no" name="viewport">
     <link rel="apple-touch-icon" sizes="76x76" href="/img/apple-icon.png">
     <link rel="icon" type="image/png" href="/img/favicon.png">
     <title>Meeting Scheduler</title>
@@ -65,18 +65,24 @@
         <!-- Change the color of the sidebar using: data-color="blue|green|orange|red|yellow" -->
         <div class="sidebar" data-color="orange">
             <div class="logo">
-                <a href="/" class="simple-text logo-mini" style="width: auto">MAMS</a>
-                <a href="/" class="simple-text logo-normal">HOME</a>
+                <a class="simple-text logo-mini" style="pointer-events: none; width: auto">MAMS</a>
+                <a class="simple-text logo-normal" style="pointer-events: none">Meeting Scheduler</a>
             </div>
             <div class="sidebar-wrapper" id="sidebar-wrapper">
                 <ul class="nav" id="agent-list">
+                    <li {% if agent == None %} class="active" {% endif %}>
+                        <a href="\">
+                            <i class="now-ui-icons shopping_shop"></i>
+                            <p>Home</p>
+                        </a>
+                    </li>
                     {% for item in agents %}
-                        <li {% if agent != None %}{% if item.agent_id == agent.agent_id %} class="active" {% endif %}{% endif %}>
-                            <a href="/agent/{{ item.agent_id }}">
-                                <i class="now-ui-icons users_single-02"></i>
-                                <p>{{ item.email | split_name }}</p>
-                            </a>
-                        </li>
+                    <li {% if agent != None %}{% if item.agent_id == agent.agent_id %} class="active" {% endif %}{% endif %}>
+                        <a href="/agent/{{ item.agent_id }}">
+                            <i class="now-ui-icons users_single-02"></i>
+                            <p>{{ item.email | split_name }}</p>
+                        </a>
+                    </li>
                     {% endfor %}
                     <li>
                         <a id="agent-add" style="background: rgba(255,255,255,0.3)">
@@ -119,7 +125,7 @@
     <script src="/js/core/jquery.min.js"></script>
     <script src="/js/core/popper.min.js"></script>
     <script src="/js/core/bootstrap.min.js"></script>
-    <script src="/js/plugins/perfect-scrollbar.jquery.min.js"></script>
+    <script src="/js/core/perfect-scrollbar.jquery.min.js"></script>
     <script src="/js/plugins/bootstrap-notify.js"></script>
     <script src="/js/plugins/bootstrap-datepicker.js"></script>
     <script src="/js/plugins/bootstrap-timepicker.js"></script>
@@ -137,6 +143,18 @@
             $("#agent-cancel").on("click", function () {
                 $("#add-light").css("display", "none");
                 $("#add-fade").css("display", "none");
+            });
+
+            $("#agent-email").on("keypress", function (event) {
+                if (event.keyCode == 13) {
+                    $("#agent-confirm").trigger("click");
+                }
+            });
+
+            $("#agent-password").on("keypress", function (event) {
+                if (event.keyCode == 13) {
+                    $("#agent-confirm").trigger("click");
+                }
             });
 
             $("#agent-confirm").on("click", function() {

@@ -1,4 +1,4 @@
-{% extends 'public.html' %}
+{% extends "public.html" %}
 {% block content %}
 
 <!-- Top navbar -->
@@ -21,14 +21,14 @@
 <div class="panel-header">
      <div class="header text-center">
          <h2 class="title" style="margin-bottom: 10px">Negotiation Strategies</h2>
-         <p class="category">Three negotiation strategies are implemented in the framework.</p>
+         <p class="category">Three negotiation strategies are implemented in the web framework.</p>
      </div>
 </div>
 
 <!-- Main content -->
 <div class="content" style="margin-top: -70px">
     <div class="row">
-        <div class="col-lg-4">
+        <div class="col-lg-4 col-md-6">
             <div class="card card-chart">
                 <div class="card-header">
                     <h5 class="card-category">Strategy One</h5>
@@ -36,7 +36,9 @@
                 </div>
                 <div class="card-body">
                     <div class="typography-line">
-                        <p>I will be the leader of a company that ends up being worth billions of dollars, because I got the answers. I understand culture. I am the nucleus. I think that’s a responsibility that I have, to push possibilities, to show people, this is the level that things could be at</p>
+                        <p>
+                            The host agent sends the meeting request to all guest agents. When a guest agent receives a meeting request, it will access the calendar and find if the requested time can be accepted. Each guest agent replies to the host agent whether it is available. After the host agent receives all the replies, if all guest agents are available at the requested time, the host agent informs that the meeting is successfully scheduled, otherwise the counterproposal strategy will be applied.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -49,7 +51,9 @@
                 </div>
                 <div class="card-body">
                     <div class="typography-line">
-                        <p>I will be the leader of a company that ends up being worth billions of dollars, because I got the answers. I understand culture. I am the nucleus. I think that’s a responsibility that I have, to push possibilities, to show people, this is the level that things could be at</p>
+                        <p>
+                            If participants cannot reach an agreement on the requested time, they will start the counterproposal strategy. Once the message is received by a guest agent, it creates a counterproposal and replies with five available time slots that have the highest preference and are closest to the initial requested time. After the host agent receives all the replies, if there is an intersection, the host agent informs that the meeting is successfully scheduled, otherwise the voting strategy will be applied.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -62,7 +66,9 @@
                 </div>
                 <div class="card-body">
                     <div class="typography-line">
-                        <p>I will be the leader of a company that ends up being worth billions of dollars, because I got the answers. I understand culture. I am the nucleus. I think that’s a responsibility that I have, to push possibilities, to show people, this is the level that things could be at</p>
+                        <p>
+                            The voting strategy is the last resort for the agents to find the meeting time when other strategies fail. The host agent finds ten available time slots on that day and sends to the guest agents. Each guest agent votes on each time, informing the host agent the availability and preference of that time. Once all the guest agents respond to the host agent, the host agent picks the time when all participants are available and the total preference is the highest, otherwise the negotiation failed.
+                        </p>
                     </div>
                 </div>
             </div>

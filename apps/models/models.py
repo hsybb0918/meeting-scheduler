@@ -39,7 +39,7 @@ class MeetingModel(db.Model):
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
     subject = db.Column(db.Text, nullable=False)
-    location = db.Column(db.Text)
+    location = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
 
     agents = db.relationship('ScheduleModel', back_populates='meeting')

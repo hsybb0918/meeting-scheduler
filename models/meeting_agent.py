@@ -27,6 +27,8 @@ class MeetingAgent(agent.Agent):
 
     is_host = None  # boolean
 
+    is_successful = None
+
 
 
     class ProposeRequest(CyclicBehaviour):
@@ -472,6 +474,7 @@ class MeetingAgent(agent.Agent):
 
         self.user_calendar = user_calendar
         self.is_host = False
+        self.is_successful = False
 
     async def setup(self):
         # start the agent
@@ -488,6 +491,7 @@ class MeetingAgent(agent.Agent):
 
     def add_meeting(self, meeting):
         self.user_calendar.add_meeting(meeting)
+        self.is_successful = True
         # todo: database insert
         print('{} -> schedule the meeting successfully'.format(self.jid))
         print('{} -> now the number of meetings is {}'.format(self.jid, len(self.user_calendar.schedules)))

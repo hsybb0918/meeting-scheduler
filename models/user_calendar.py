@@ -140,8 +140,17 @@ class UserCalendar:
         self.schedules.append(meeting)
 
     def has_overlap(self, a_start, a_end, b_start, b_end):
+        """
+        if two time slots have overlap
+        :param a_start:
+        :param a_end:
+        :param b_start:
+        :param b_end:
+        :return:
+        """
         latest_start = max(a_start, b_start)
         earliest_end = min(a_end, b_end)
+
         return latest_start <= earliest_end
 
     def __str__(self):
@@ -157,7 +166,7 @@ class UserCalendar:
         for preference in self.preferences:
             preference_list.append(str(preference))
 
-        return 'Schedules: {}\nOffices: {}\nPreferences: {}' \
+        return 'Schedules: {}\nOffices: {}\nPreferences: {}'\
             .format(schedule_list, office_list, preference_list)
 
 
@@ -190,28 +199,56 @@ class ScheduledMeeting:
         self.guest_agents = guest_agents
 
     def get_year(self):
+        """
+        get the year of meeting
+        :return:
+        """
         return self.start_time.year
 
     def get_month(self):
+        """
+        get the month of meeting
+        :return:
+        """
         return self.start_time.month
 
     def get_day(self):
+        """
+        get the day of meeting
+        :return:
+        """
         return self.start_time.day
 
     def get_start_hour(self):
+        """
+        get the start hour of the meeting
+        :return:
+        """
         return self.start_time.hour
 
     def get_start_minute(self):
+        """
+        get the start minute of the meeting
+        :return:
+        """
         return self.start_time.minute
 
     def get_end_hour(self):
+        """
+        get the end hour of the meeting
+        :return:
+        """
         return self.end_time.hour
 
     def get_end_minute(self):
+        """
+        get the end minute of the meeting
+        :return:
+        """
         return self.end_time.minute
 
     def __str__(self):
-        return 'Meeting: start({}), end({}), subject({}), location({}), description({})' \
+        return 'Meeting: start({}), end({}), subject({}), location({}), description({})'\
             .format(self.start_time, self.end_time, self.subject, self.location, self.description)
 
 
@@ -243,13 +280,9 @@ class PreferenceTime:
 
     def __str__(self):
         if self.is_local:
-            return 'Preference: start({}), end({}), priority({}), specified_date({})'.format(self.start_time,
-                                                                                             self.end_time
-                                                                                             , self.priority,
-                                                                                             self.specified_date)
+            return 'Preference: start({}), end({}), priority({}), specified_date({})'.format(self.start_time
+                                                                                             , self.end_time
+                                                                                             , self.priority
+                                                                                             , self.specified_date)
         else:
             return 'Preference: start({}), end({}), priority({})'.format(self.start_time, self.end_time, self.priority)
-
-
-if __name__ == '__main__':
-    pass
