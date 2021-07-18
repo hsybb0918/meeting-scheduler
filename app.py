@@ -10,8 +10,10 @@ app = create_app()
 
 @app.route('/', methods=['GET'])
 def index():
+    # # create database models
     # db.create_all()
 
+    # # initial settings
     # agent1 = AgentModel('meeting-alice@404.city', 'meeting-alice')
     # agent2 = AgentModel('meeting-bob@404.city', 'meeting-bob')
     # agent3 = AgentModel('meeting-calvin@404.city', 'meeting-calvin')
@@ -77,16 +79,17 @@ def agent(aid):
     agents = AgentModel.query.all()
     agent = AgentModel.query.get(aid)
 
-    # get other agents except self
+    # get other agents except self, for meeting request
     others = AgentModel.query.filter(AgentModel.agent_id != agent.agent_id).all()
 
-    # get meeting ids
+    # get meeting ids for current agent
     mids = []
     for meeting in agent.meetings:
         mids.append(meeting.meeting_id)
 
     # get meetings
-    meetings = MeetingModel.query.filter(MeetingModel.meeting_id.in_(mids)).order_by(MeetingModel.start_time.asc()).all()
+    meetings = MeetingModel.query.filter(MeetingModel.meeting_id.in_(mids)).order_by(
+        MeetingModel.start_time.asc()).all()
     if len(meetings) == 0:
         meetings = None
 
@@ -96,7 +99,8 @@ def agent(aid):
         offices = None
 
     # get preferences
-    preferences = PreferenceModel.query.filter(PreferenceModel.agent_id == aid).order_by(PreferenceModel.is_local.asc(), PreferenceModel.start_time.asc()).all()
+    preferences = PreferenceModel.query.filter(PreferenceModel.agent_id == aid).order_by(PreferenceModel.is_local.asc(),
+                                                                                         PreferenceModel.start_time.asc()).all()
     if len(preferences) == 0:
         preferences = None
 
@@ -106,17 +110,32 @@ def agent(aid):
 
 @app.template_filter('split_name')
 def split_name(email):
+    """
+    filter, split the email prefix
+    :param email:
+    :return:
+    """
     return email.split('@')[0]
 
 
 @app.template_filter('start_cut')
-def start_cut(time):
-    return time.strftime('%m/%d/%Y %H:%M')
+def start_cut(dt):
+    """
+    filter, format the datetime to date and time
+    :param dt:
+    :return:
+    """
+    return dt.strftime('%m/%d/%Y %H:%M')
 
 
 @app.template_filter('end_cut')
-def end_cut(time):
-    return time.strftime('%H:%M')
+def end_cut(dt):
+    """
+    filter, format the datetime to time
+    :param dt:
+    :return:
+    """
+    return dt.strftime('%H:%M')
 
 
 if __name__ == '__main__':

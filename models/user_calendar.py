@@ -3,7 +3,6 @@
 # @Time        : 20 June, 2021
 # @Author      : Cyan
 from datetime import datetime, time, timedelta
-import json
 
 
 class UserCalendar:
@@ -17,6 +16,12 @@ class UserCalendar:
         self.preferences = preferences
 
     def has_conflict_schedules(self, start, end):
+        """
+        detect if the time is conflict with the schedules
+        :param start:
+        :param end:
+        :return:
+        """
         for meeting in self.schedules:
             # conflict
             if self.has_overlap(start, end, meeting.start_time, meeting.end_time):
@@ -24,6 +29,12 @@ class UserCalendar:
         return False
 
     def has_conflict_offices(self, start, end):
+        """
+        detect if the time is conflict with the offices
+        :param start:
+        :param end:
+        :return:
+        """
         start_t = start.time()
         end_t = end.time()
 
@@ -38,6 +49,12 @@ class UserCalendar:
         return True if num_conflict == len(self.offices) else False
 
     def has_conflict_preferences(self, start, end):
+        """
+        detect if the time is conflict with the preferences
+        :param start:
+        :param end:
+        :return:
+        """
         start_t = start.time()
         end_t = end.time()
 
@@ -56,6 +73,13 @@ class UserCalendar:
             return False
 
     def find_free_slots(self, start, end, num):
+        """
+        important algorithm to find available time slots
+        :param start:
+        :param end:
+        :param num:
+        :return:
+        """
         m_date = start.date()
 
         # find all meetings and unavailable office time
@@ -73,10 +97,11 @@ class UserCalendar:
         day_start = datetime.combine(m_date, time(0, 0))
         day_end = datetime.combine(m_date, time(23, 30))
 
-        # todo: offices need sorted
+        # offices need sorted
         if len(self.offices) != 0:
-            day_start = datetime.combine(m_date, self.offices[0].start_time)
-            day_end = datetime.combine(m_date, self.offices[-1].end_time)
+            sorted_offices = sorted(self.offices)
+            day_start = datetime.combine(m_date, sorted_offices[0].start_time)
+            day_end = datetime.combine(m_date, sorted_offices[-1].end_time)
 
         # duration
         duration = end - start
@@ -110,6 +135,12 @@ class UserCalendar:
         return returned_slots
 
     def compute_total_preference(self, start, end):
+        """
+        compute the total preference value according to the user calendar
+        :param start:
+        :param end:
+        :return:
+        """
         total_preference = 0
         is_unavailable = False
 
@@ -130,18 +161,23 @@ class UserCalendar:
                             else:
                                 total_preference += preference.priority
             if not find_preference:
-                total_preference += 5
+                total_preference += 5  # default value
 
             start_point += timedelta(minutes=30)
 
         return 0 if is_unavailable else total_preference
 
     def add_meeting(self, meeting):
+        """
+        add the meeting to the user calendar
+        :param meeting:
+        :return:
+        """
         self.schedules.append(meeting)
 
     def has_overlap(self, a_start, a_end, b_start, b_end):
         """
-        if two time slots have overlap
+        check if two time slots have overlap, could move to utils
         :param a_start:
         :param a_end:
         :param b_start:

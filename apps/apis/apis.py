@@ -6,8 +6,6 @@ import json
 from time import sleep
 from datetime import time, date, datetime
 
-from spade import quit_spade
-
 from flask import Blueprint
 from flask_restful import Api, Resource, marshal_with, fields, reqparse, marshal
 
@@ -19,14 +17,31 @@ from models.user_calendar import OfficeTime, PreferenceTime, ScheduledMeeting, U
 bp = Blueprint('mams', __name__)
 api = Api(bp)
 
-# for single agent
+
+class TimeFormat(fields.Raw):
+    """
+    field type for datetime.time
+    """
+    def format(self, value):
+        return time.strftime(value, '%H:%M')
+
+
+class DateFormat(fields.Raw):
+    """
+    field type for datetime.date
+    """
+    def format(self, value):
+        return date.strftime(value, '%Y-%m-%d')
+
+
+# fields for single agent
 agent_fields = {
     'agent_id': fields.Integer,
     'email': fields.String,
     'password': fields.String
 }
 
-# for single meeting
+# fields for single meeting
 meeting_fields = {
     'meeting_id': fields.Integer,
     'start_time': fields.DateTime,
@@ -36,26 +51,43 @@ meeting_fields = {
     'description': fields.String
 }
 
-# for agent's meetings
+# fields for agent's meetings
 agent_meetings_fields = {
     'agent_id': fields.Integer,
     'email': fields.String,
     'meetings': fields.List(fields.Nested(meeting_fields))
 }
 
-# agent parser
+# fields for agent's offices
+office_fields = {
+    'start_time': TimeFormat,
+    'end_time': TimeFormat
+}
+
+# fields for agent's preferences
+preference_fields = {
+    'start_time': TimeFormat,
+    'end_time': TimeFormat,
+    'priority': fields.Integer,
+    'is_local': fields.Boolean,
+    'specified_date': DateFormat
+}
+
+# parser for agent
 agent_parser = reqparse.RequestParser()
 agent_parser.add_argument('email', type=str, required=True, help='Email cannot be blank!')
 agent_parser.add_argument('password', type=str, required=True, help='Password cannot be blank!')
 
-# delete meeting parser
+# parser for meeting deletion
 meeting_delete_parser = reqparse.RequestParser()
 meeting_delete_parser.add_argument('agent_id', type=int)
 
+# parser for office add
 office_add_parser = reqparse.RequestParser()
 office_add_parser.add_argument('start', type=str)
 office_add_parser.add_argument('end', type=str)
 
+# parser for preference add
 preference_add_parser = reqparse.RequestParser()
 preference_add_parser.add_argument('start', type=str)
 preference_add_parser.add_argument('end', type=str)
@@ -63,7 +95,7 @@ preference_add_parser.add_argument('priority', type=int)
 preference_add_parser.add_argument('local', type=str)
 preference_add_parser.add_argument('date', type=str)
 
-# meeting request parser
+# parser for meeting request
 meeting_request_parser = reqparse.RequestParser()
 meeting_request_parser.add_argument('start', type=str)
 meeting_request_parser.add_argument('end', type=str)
@@ -78,25 +110,22 @@ meeting_request_parser.add_argument('guests_id', type=str)
 class AgentsResource(Resource):
     def get(self):
         """
-        get all agents with id, name and email, no password returned
+        get all agents
         :return:
         """
         agents = AgentModel.query.all()
+        data = marshal(agents, agent_fields)
 
-        agent_list = []
-
-        for agent in agents:
-            agent_single = {
-                'agent_id': agent.agent_id,
-                'name': agent.email.split('@')[0],
-                'email': agent.email
-            }
-            agent_list.append(agent_single)
-
-        data = {
-            'num': len(agents),
-            'agents': agent_list
-        }
+        # agent_list = []
+        #
+        # for agent in agents:
+        #     agent_single = marshal(agent, agent_fields)
+        #     agent_list.append(agent_single)
+        #
+        # data = {
+        #     'num': len(agents),
+        #     'agents': agent_list
+        # }
 
         return data
 
@@ -113,7 +142,7 @@ class AgentsResource(Resource):
 
         # agent already exists
         if len(agent_query) != 0:
-            return {'code': 300, 'message': 'The agent already exists!'}
+            return {'code': 400, 'message': 'The agent already exists!'}
 
         # authenticate agent
         agent_test = MeetingAgent(email, password, None)
@@ -129,7 +158,6 @@ class AgentsResource(Resource):
 
 
 class AgentResource(Resource):
-    @marshal_with(agent_fields)
     def get(self, aid):
         """
         get the agent with id
@@ -137,9 +165,16 @@ class AgentResource(Resource):
         :return:
         """
         agent = AgentModel.query.get(aid)
-        return agent
+        data = marshal(agent, agent_fields)
+
+        return data
 
     def delete(self, aid):
+        """
+        delete the agent with id, can only delete agent without meeting
+        :param aid:
+        :return:
+        """
         agent = AgentModel.query.get(aid)
 
         if len(agent.meetings) == 0:
@@ -151,7 +186,6 @@ class AgentResource(Resource):
 
 
 class MeetingsResource(Resource):
-    @marshal_with(agent_meetings_fields)
     def get(self, aid):
         """
         get the meetings of the agent with id
@@ -167,11 +201,13 @@ class MeetingsResource(Resource):
 
         # get all meetings
         meetings = MeetingModel.query.filter(MeetingModel.meeting_id.in_(mids)).all()
-        data = {
+        data_format = {
             'agent_id': agent.agent_id,
             'email': agent.email,
             'meetings': meetings
         }
+
+        data = marshal(data_format, agent_meetings_fields)
 
         return data
 
@@ -193,7 +229,7 @@ class MeetingResource(Resource):
         for agent in meeting.agents:
             participants.append(AgentModel.query.get(agent.agent_id).email)
 
-        # add two fields
+        # add two string fields for display
         data['time_range'] = meeting.start_time.strftime('%m/%d/%Y %H:%M') + ' - ' + meeting.end_time.strftime('%H:%M')
         data['participants'] = participants
 
@@ -201,7 +237,7 @@ class MeetingResource(Resource):
 
     def delete(self, mid):
         """
-        delete the meeting with id
+        delete the meeting with id, only host agent can delete meeting
         :param mid:
         :return:
         """
@@ -221,7 +257,22 @@ class MeetingResource(Resource):
 
 
 class OfficesResource(Resource):
+    def get(self, aid):
+        """
+        get offices for specific agent
+        :param aid:
+        :return:
+        """
+        offices = OfficeModel.query.filter(OfficeModel.agent_id == aid).all()
+        data = marshal(offices, office_fields)
+        return data
+
     def post(self, aid):
+        """
+        add office to specific agent
+        :param aid:
+        :return:
+        """
         args = office_add_parser.parse_args()
         start = args.get('start')
         end = args.get('end')
@@ -286,7 +337,23 @@ class OfficesResource(Resource):
 
 
 class OfficeResource(Resource):
+    def get(self, oid):
+        """
+        get specific office according to id
+        :param oid:
+        :return:
+        """
+        office = OfficeModel.query.get(oid)
+        data = marshal(office, office_fields)
+
+        return data
+
     def delete(self, oid):
+        """
+        delete specific office according to id
+        :param oid:
+        :return:
+        """
         office = OfficeModel.query.get(oid)
         try:
             db.session.delete(office)
@@ -297,7 +364,23 @@ class OfficeResource(Resource):
 
 
 class PreferencesResource(Resource):
+    def get(self, aid):
+        """
+        get preferences for specific agent
+        :param aid:
+        :return:
+        """
+        preferences = PreferenceModel.query.filter(PreferenceModel.agent_id == aid).all()
+        data = marshal(preferences, preference_fields)
+
+        return data
+
     def post(self, aid):
+        """
+        add preference to specific agent
+        :param aid:
+        :return:
+        """
         args = preference_add_parser.parse_args()
         start = args.get('start')
         end = args.get('end')
@@ -306,8 +389,6 @@ class PreferencesResource(Resource):
         date = args.get('date')
 
         is_local = False if local == 'false' else True
-
-        print(is_local)
 
         # parse time
         start_time = self.parse_time(start)
@@ -386,7 +467,23 @@ class PreferencesResource(Resource):
 
 
 class PreferenceResource(Resource):
+    def get(self, pid):
+        """
+        get specific preference according to id
+        :param pid:
+        :return:
+        """
+        preference = PreferenceModel.query.get(pid)
+        data = marshal(preference, preference_fields)
+
+        return data
+
     def delete(self, pid):
+        """
+        delete specific preference according to id
+        :param pid:
+        :return:
+        """
         preference = PreferenceModel.query.get(pid)
         try:
             db.session.delete(preference)
@@ -493,7 +590,6 @@ class RequestMeetingResource(Resource):
             db.session.add_all(schedules_add)
             db.session.commit()
 
-
             return {'code': 200, 'message': 'Schedule the meeting successfully!'}
         elif not ma_host.is_successful:
             for agent in all_agents:
@@ -503,9 +599,6 @@ class RequestMeetingResource(Resource):
             for agent in all_agents:
                 agent.stop()
             return {'code': 400, 'message': 'Meeting negotiation timed out!'}
-
-
-
 
     def parse_time(self, time_string):
         """
@@ -538,6 +631,11 @@ class RequestMeetingResource(Resource):
         return latest_start < earliest_end
 
     def set_user_calendar(self, agent_model):
+        """
+        database operation
+        :param agent_model:
+        :return:
+        """
         schedules = []
         for meeting in agent_model.meetings:
             mm = MeetingModel.query.get(meeting.meeting_id)
@@ -559,10 +657,14 @@ class RequestMeetingResource(Resource):
 
 api.add_resource(AgentsResource, '/api/agents')
 api.add_resource(AgentResource, '/api/agent/<int:aid>')
+
 api.add_resource(MeetingsResource, '/api/meetings/<int:aid>')
 api.add_resource(MeetingResource, '/api/meeting/<int:mid>')
+
 api.add_resource(OfficesResource, '/api/offices/<int:aid>')
 api.add_resource(OfficeResource, '/api/office/<int:oid>')
+
 api.add_resource(PreferencesResource, '/api/preferences/<int:aid>')
 api.add_resource(PreferenceResource, '/api/preference/<int:pid>')
+
 api.add_resource(RequestMeetingResource, '/api/request')

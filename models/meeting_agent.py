@@ -2,21 +2,15 @@
 # @Description :
 # @Time        : 15 June, 2021
 # @Author      : Cyan
-import asyncio
 import json
 from datetime import datetime, time
 
-import aiosasl
-from collections import Counter
-
-from OpenSSL.SSL import Error
 from spade import agent
-from spade.agent import AuthenticationFailure
-from spade.behaviour import CyclicBehaviour, PeriodicBehaviour, OneShotBehaviour
+from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from models.user_calendar import UserCalendar, ScheduledMeeting
+from models.user_calendar import ScheduledMeeting
 
 
 class MeetingAgent(agent.Agent):
@@ -29,9 +23,13 @@ class MeetingAgent(agent.Agent):
 
     is_successful = None
 
-
-
     class ProposeRequest(CyclicBehaviour):
+        """
+        host behaviour class, propose request
+        """
+        async def on_start(self):
+            print('{} -> propose request behaviour start'.format(self.agent.jid))
+
         async def run(self):
             # if the agent propose a meeting
             if self.agent.is_host:
@@ -74,7 +72,16 @@ class MeetingAgent(agent.Agent):
                 # kill the behaviour
                 self.kill()
 
+        async def on_end(self):
+            print('{} -> propose request behaviour end'.format(self.agent.jid))
+
     class ProposeCounterproposal(CyclicBehaviour):
+        """
+        host behaviour class, propose counterproposal
+        """
+        async def on_start(self):
+            print('{} -> propose counterproposal behaviour start'.format(self.agent.jid))
+
         async def run(self):
             reply_msg_mt = Template()
             reply_msg_mt.thread = 'simple-match-reply'
@@ -132,7 +139,16 @@ class MeetingAgent(agent.Agent):
                 # kill this behaviour
                 self.kill()
 
+        async def on_end(self):
+            print('{} -> propose counterproposal behaviour end'.format(self.agent.jid))
+
     class ProposeVoting(CyclicBehaviour):
+        """
+        host behaviour class, propose voting
+        """
+        async def on_start(self):
+            print('{} -> propose voting behaviour start'.format(self.agent.jid))
+
         async def run(self):
             reply_msg_mt = Template()
             reply_msg_mt.thread = 'counterproposal-process-reply'
@@ -210,7 +226,16 @@ class MeetingAgent(agent.Agent):
                 # kill this behaviour
                 self.kill()
 
+        async def on_end(self):
+            print('{} -> propose voting behaviour end'.format(self.agent.jid))
+
     class ProposeConfirmation(CyclicBehaviour):
+        """
+        host behaviour class, propose confirmation
+        """
+        async def on_start(self):
+            print('{} -> propose confirmation behaviour start'.format(self.agent.jid))
+
         async def run(self):
             reply_msg_mt = Template()
             reply_msg_mt.thread = 'voting-process-reply'
@@ -274,14 +299,16 @@ class MeetingAgent(agent.Agent):
                 self.kill()
 
         async def on_end(self):
-            print('propose confirmation end')
+            print('{} -> propose confirmation behaviour end'.format(self.agent.jid))
 
     class ResponseRequest(CyclicBehaviour):
+        """
+        guest behaviour class, response request
+        """
         async def on_start(self):
-            print('response request')
+            print('{} -> response request behaviour start'.format(self.agent.jid))
 
         async def run(self):
-            pass
             # set request message template
             request_msg_mt = Template()
             request_msg_mt.thread = 'simple-match'
@@ -327,9 +354,15 @@ class MeetingAgent(agent.Agent):
                 self.kill()
 
         async def on_end(self):
-            print('{} -> response request behavior end'.format(self.agent.jid))
+            print('{} -> response request behaviour end'.format(self.agent.jid))
 
     class ResponseCounterproposal(CyclicBehaviour):
+        """
+        guest behaviour class, response counterproposal
+        """
+        async def on_start(self):
+            print('{} -> response counterproposal behaviour start'.format(self.agent.jid))
+
         async def run(self):
             counterproposal_msg_mt = Template()
             counterproposal_msg_mt.thread = 'counterproposal-process'
@@ -377,11 +410,14 @@ class MeetingAgent(agent.Agent):
                 self.kill()
 
         async def on_end(self):
-            print('{} -> response counterproposal behavior end'.format(self.agent.jid))
+            print('{} -> response counterproposal behaviour end'.format(self.agent.jid))
 
     class ResponseVoting(CyclicBehaviour):
+        """
+        guest behaviour class, response voting
+        """
         async def on_start(self):
-            print('response voting start')
+            print('{} -> response voting behaviour start'.format(self.agent.jid))
 
         async def run(self):
             voting_msg_mt = Template()
@@ -432,11 +468,14 @@ class MeetingAgent(agent.Agent):
                 self.kill()
 
         async def on_end(self):
-            print('{} -> response voting end'.format(self.agent.jid))
+            print('{} -> response voting behaviour end'.format(self.agent.jid))
 
     class ResponseConfirmation(CyclicBehaviour):
+        """
+        guest behaviour class, response confirmation
+        """
         async def on_start(self):
-            print('response confirmation start')
+            print('{} -> response confirmation behaviour start'.format(self.agent.jid))
 
         async def run(self):
             final_msg_mt = Template()
@@ -467,7 +506,7 @@ class MeetingAgent(agent.Agent):
                 self.kill()
 
         async def on_end(self):
-            print('response confirmation end')
+            print('{} -> response confirmation behaviour end'.format(self.agent.jid))
 
     def __init__(self, jid, password, user_calendar):
         super().__init__(jid, password)
@@ -477,26 +516,48 @@ class MeetingAgent(agent.Agent):
         self.is_successful = False
 
     async def setup(self):
+        """
+        setup the agent when the agent start
+        :return:
+        """
         # start the agent
         print('{} -> start'.format(str(self.jid)))
 
-        # add two types of behaviours
+        # add two types of behaviours, initial behaviours
         self.add_behaviour(self.ProposeRequest())
         self.add_behaviour(self.ResponseRequest())
 
     def propose_meeting(self, meeting):
+        """
+        agent proposes a meeting and set self as host
+        :param meeting:
+        :return:
+        """
         self.proposed_meeting = meeting
         self.receivers = meeting.guest_agents
         self.is_host = True
 
     def add_meeting(self, meeting):
+        """
+        add meeting if negotiation successful
+        :param meeting:
+        :return:
+        """
         self.user_calendar.add_meeting(meeting)
         self.is_successful = True
-        # todo: database insert
+
+        # todo: database insert, not here
+
         print('{} -> schedule the meeting successfully'.format(self.jid))
         print('{} -> now the number of meetings is {}'.format(self.jid, len(self.user_calendar.schedules)))
 
     def check_time_availability(self, start, end):
+        """
+        check time availability for schedules, offices and preferences
+        :param start:
+        :param end:
+        :return:
+        """
         if self.user_calendar.has_conflict_schedules(start, end):
             print('{} -> conflict schedules'.format(self.jid))
             return False
@@ -510,10 +571,80 @@ class MeetingAgent(agent.Agent):
         return True
 
     def find_counterproposal_slots(self, start, end):
-        # consider proposed meeting and no more than 5
+        """
+        find 5 time slots for counterproposal
+        :param start:
+        :param end:
+        :return:
+        """
         return self.user_calendar.find_free_slots(start, end, 5)
 
+    def find_voting_slots(self, start, end):
+        """
+        find 10 time slots for voting
+        :param start:
+        :param end:
+        :return:
+        """
+        return self.user_calendar.find_free_slots(start, end, 10)
+
+        # available_slots = {}
+        #
+        # proposed_start = self.proposed_meeting.time_slots[0]
+        # slot_num = len(self.proposed_meeting.time_slots)
+        # for start in range(48 - slot_num + 1):
+        #     is_available = True
+        #     preference_total = 0
+        #     for i in range(slot_num):
+        #         preference_total += self.user_calendar.global_slot_preference[start + i]
+        #
+        #         if self.user_calendar.global_slot_preference[start + i] == 0:
+        #             is_available = False
+        #
+        #     if is_available:
+        #         preference_avg = round(preference_total / slot_num, 1)
+        #         distance = abs(start - proposed_start)
+        #         counter_distance = 48 - distance
+        #
+        #         available_slots[start] = [preference_avg, counter_distance]
+        #
+        # # sort and choose 10 slot range
+        # return_slots = {}
+        #
+        # sorted_slots = sorted(available_slots.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
+        # for i in range(10):
+        #     return_slots[sorted_slots[i][0]] = sorted_slots[i][1][0]
+        #
+        # return return_slots
+
+    def voting_for_choices(self, choices, date, duration):
+        """
+        guest agents vote for received choices
+        :param choices:
+        :param date:
+        :param duration:
+        :return:
+        """
+        voting_result = {}
+
+        for choice in choices:
+            meeting_time = time(int(choice.split(':')[0]), int(choice.split(':')[1]))
+            dt_start = datetime.combine(date, meeting_time)
+            dt_end = dt_start + duration
+
+            choice_preference = self.user_calendar.compute_total_preference(dt_start, dt_end)
+            # print(dt_start, dt_end, choice_preference)
+
+            voting_result[choice] = choice_preference
+
+        return voting_result
+
     def check_counterproposal_availability(self, counters):
+        """
+        check the availability of received counterproposal
+        :param counters:
+        :return:
+        """
         counter_list = []
         for counter in counters:
             counter_list.append(list(counter.keys()))
@@ -548,54 +679,12 @@ class MeetingAgent(agent.Agent):
 
             return best_c
 
-    def find_voting_slots(self, start, end):
-        return self.user_calendar.find_free_slots(start, end, 10)
-
-        # available_slots = {}
-        #
-        # proposed_start = self.proposed_meeting.time_slots[0]
-        # slot_num = len(self.proposed_meeting.time_slots)
-        # for start in range(48 - slot_num + 1):
-        #     is_available = True
-        #     preference_total = 0
-        #     for i in range(slot_num):
-        #         preference_total += self.user_calendar.global_slot_preference[start + i]
-        #
-        #         if self.user_calendar.global_slot_preference[start + i] == 0:
-        #             is_available = False
-        #
-        #     if is_available:
-        #         preference_avg = round(preference_total / slot_num, 1)
-        #         distance = abs(start - proposed_start)
-        #         counter_distance = 48 - distance
-        #
-        #         available_slots[start] = [preference_avg, counter_distance]
-        #
-        # # sort and choose 10 slot range
-        # return_slots = {}
-        #
-        # sorted_slots = sorted(available_slots.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
-        # for i in range(10):
-        #     return_slots[sorted_slots[i][0]] = sorted_slots[i][1][0]
-        #
-        # return return_slots
-
-    def voting_for_choices(self, choices, date, duration):
-        voting_result = {}
-
-        for choice in choices:
-            meeting_time = time(int(choice.split(':')[0]), int(choice.split(':')[1]))
-            dt_start = datetime.combine(date, meeting_time)
-            dt_end = dt_start + duration
-
-            choice_preference = self.user_calendar.compute_total_preference(dt_start, dt_end)
-            # print(dt_start, dt_end, choice_preference)
-
-            voting_result[choice] = choice_preference
-
-        return voting_result
-
     def check_voting_availability(self, voting_results):
+        """
+        check availability of vote choices
+        :param voting_results:
+        :return:
+        """
         keys = list(voting_results[0].keys())
 
         available_voting = {}
@@ -622,7 +711,8 @@ class MeetingAgent(agent.Agent):
             best_v = None  # best voting key
 
             for k, v in available_voting.items():
-                voting_dt = datetime.combine(self.proposed_meeting.start_time.date(), time(int(k.split(':')[0]), int(k.split(':')[1])))
+                voting_dt = datetime.combine(self.proposed_meeting.start_time.date(),
+                                             time(int(k.split(':')[0]), int(k.split(':')[1])))
 
                 if v > best_p:
                     best_p = v
@@ -636,8 +726,6 @@ class MeetingAgent(agent.Agent):
             # print('best voting time', best_v)
 
             return best_v
-
-
 
         # participant_num = len(voting_results)
         # proposed_start = self.proposed_meeting.time_slots[0]
