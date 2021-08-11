@@ -10,7 +10,7 @@ from flask import Blueprint
 from flask_restful import Api, Resource, marshal_with, fields, reqparse, marshal
 
 from apps import db
-from apps.models.models import ScheduleModel, AgentModel, MeetingModel, OfficeModel, PreferenceModel
+from apps.dbmodels.dbmodels import ScheduleModel, AgentModel, MeetingModel, OfficeModel, PreferenceModel
 from models.meeting_agent import MeetingAgent
 from models.user_calendar import OfficeTime, PreferenceTime, ScheduledMeeting, UserCalendar
 
@@ -515,7 +515,7 @@ class RequestMeetingResource(Resource):
 
         # time not valid
         if start_time >= end_time:
-            return {'code': 300, 'message': 'The start time cannot exceed the end time!'}
+            return {'code': 400, 'message': 'The start time cannot exceed the end time!'}
 
         # get the host agent model
         host = AgentModel.query.get(int(host_id))
@@ -567,12 +567,14 @@ class RequestMeetingResource(Resource):
         ma_host.propose_meeting(sm)
 
         sleep(5)
-        if ma_host.is_successful:
+
+        is_successful, meeting_success = ma_host.get_meeting_status()
+        if is_successful:
             for agent in all_agents:
                 agent.stop()
 
-            # db
-            meeting_add = MeetingModel(start_time, end_time, subject, location, description)
+            # db operation
+            meeting_add = MeetingModel(meeting_success.start_time, meeting_success.end_time, subject, location, description)
             schedules_add = []
 
             schedule_host = ScheduleModel(is_host=True)
@@ -591,7 +593,7 @@ class RequestMeetingResource(Resource):
             db.session.commit()
 
             return {'code': 200, 'message': 'Schedule the meeting successfully!'}
-        elif not ma_host.is_successful:
+        elif not is_successful:
             for agent in all_agents:
                 agent.stop()
             return {'code': 400, 'message': 'Failed to schedule the meeting!'}

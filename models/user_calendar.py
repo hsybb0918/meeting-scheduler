@@ -163,7 +163,19 @@ class UserCalendar:
             if not find_preference:
                 total_preference += 5  # default value
 
+            if len(self.offices) != 0:
+                in_office = False
+                for office in self.offices:
+                    if office.start_time <= start_point.time() < office.end_time:
+                        in_office = True
+                if not in_office:
+                    is_unavailable = True
+
             start_point += timedelta(minutes=30)
+
+        for meeting in self.schedules:
+            if self.has_overlap(meeting.start_time, meeting.end_time, start, end):
+                is_unavailable = True
 
         return 0 if is_unavailable else total_preference
 
@@ -295,6 +307,12 @@ class OfficeTime:
     def __init__(self, start_time, end_time):
         self.start_time = start_time
         self.end_time = end_time
+
+    def __lt__(self, other):
+        if self.start_time < other.start_time:
+            return True
+        else:
+            return False
 
     def __str__(self):
         return 'Office: start({}), end({})'.format(self.start_time, self.end_time)

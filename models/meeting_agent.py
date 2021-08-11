@@ -130,7 +130,6 @@ class MeetingAgent(agent.Agent):
 
                     # add the proposed meeting and clear the variables
                     self.agent.add_meeting(self.agent.proposed_meeting)
-                    self.agent.proposed_meeting = None
                     self.agent.receivers = None
 
                     # back to the first behaviour
@@ -206,9 +205,26 @@ class MeetingAgent(agent.Agent):
                     # success, confirm the meeting
                     print('{} -> find the intersection time at {}'.format(self.agent.jid, best_slot))
 
+                    og_start = self.agent.proposed_meeting.start_time
+                    og_end = self.agent.proposed_meeting.end_time
+
+                    self.agent.proposed_meeting.start_time = best_slot
+                    self.agent.proposed_meeting.end_time = og_end - og_start + best_slot
+
                     success_msg = Message()
                     success_msg.thread = 'voting-process'
                     success_msg.set_metadata('performative', 'inform')
+
+                    data = json.dumps({
+                        'year': self.agent.proposed_meeting.get_year(),
+                        'month': self.agent.proposed_meeting.get_month(),
+                        'day': self.agent.proposed_meeting.get_day(),
+                        'start_hour': self.agent.proposed_meeting.get_start_hour(),
+                        'start_minute': self.agent.proposed_meeting.get_start_minute(),
+                        'end_hour': self.agent.proposed_meeting.get_end_hour(),
+                        'end_minute': self.agent.proposed_meeting.get_end_minute()
+                    })
+                    success_msg.body = data
 
                     for to in self.agent.proposed_meeting.guest_agents:
                         success_msg.to = to
@@ -217,7 +233,6 @@ class MeetingAgent(agent.Agent):
 
                     # add the proposed meeting and clear the variable
                     self.agent.add_meeting(self.agent.proposed_meeting)
-                    self.agent.proposed_meeting = None
                     self.agent.receivers = None
 
                     # back to the first behaviour
@@ -277,6 +292,23 @@ class MeetingAgent(agent.Agent):
                     # success, confirm the meeting
                     print('{} -> successfully schedule the meeting at {}'.format(self.agent.jid, best_slot))
 
+                    og_start = self.agent.proposed_meeting.start_time
+                    og_end = self.agent.proposed_meeting.end_time
+
+                    self.agent.proposed_meeting.start_time = best_slot
+                    self.agent.proposed_meeting.end_time = og_end - og_start + best_slot
+
+                    data = json.dumps({
+                        'year': self.agent.proposed_meeting.get_year(),
+                        'month': self.agent.proposed_meeting.get_month(),
+                        'day': self.agent.proposed_meeting.get_day(),
+                        'start_hour': self.agent.proposed_meeting.get_start_hour(),
+                        'start_minute': self.agent.proposed_meeting.get_start_minute(),
+                        'end_hour': self.agent.proposed_meeting.get_end_hour(),
+                        'end_minute': self.agent.proposed_meeting.get_end_minute()
+                    })
+                    final_msg.body = data
+
                     final_msg.set_metadata('performative', 'inform')
 
                     # add the proposed meeting
@@ -289,7 +321,6 @@ class MeetingAgent(agent.Agent):
                     print('{} -> send the final decision to {}'.format(self.agent.jid, to))
 
                 # clear the meeting variables
-                self.agent.proposed_meeting = None
                 self.agent.receivers = None
 
                 # back to the first behaviour
@@ -397,11 +428,12 @@ class MeetingAgent(agent.Agent):
 
                 elif counterproposal_metadata == 'inform':
                     # success
-                    print('{} -> receive the meeting confirmation'.format(self.agent.jid))
+                    print('{} -> receive the meeting confirmation from {} to {}'.format(self.agent.jid
+                                                                                        , self.agent.proposed_meeting.start_time
+                                                                                        , self.agent.proposed_meeting.end_time))
 
                     # add the proposed meeting and clear the variable
                     self.agent.add_meeting(self.agent.proposed_meeting)
-                    self.agent.proposed_meeting = None
                     self.agent.receivers = None
 
                     # back to the first behaviour
@@ -455,11 +487,22 @@ class MeetingAgent(agent.Agent):
 
                 elif voting_metadata == 'inform':
                     # success
-                    print('{} -> receive the meeting confirmation'.format(self.agent.jid))
+                    # change the meeting time
+                    data = json.loads(voting_msg_receive.body)
+
+                    start_time = datetime(data['year'], data['month'], data['day'], data['start_hour'],
+                                          data['start_minute'])
+                    end_time = datetime(data['year'], data['month'], data['day'], data['end_hour'], data['end_minute'])
+
+                    self.agent.proposed_meeting.start_time = start_time
+                    self.agent.proposed_meeting.end_time = end_time
+
+                    print('{} -> receive the meeting confirmation from {} to {}'.format(self.agent.jid
+                                                                                        , self.agent.proposed_meeting.start_time
+                                                                                        , self.agent.proposed_meeting.end_time))
 
                     # add the proposed meeting and clear the variable
                     self.agent.add_meeting(self.agent.proposed_meeting)
-                    self.agent.proposed_meeting = None
                     self.agent.receivers = None
 
                     # back to the first behaviour
@@ -489,15 +532,24 @@ class MeetingAgent(agent.Agent):
                 decision = final_msg_receive.get_metadata('performative')
 
                 if decision == 'failure':
-                    print('{} -> schedule the meeting successfully'.format(self.agent.jid))
+                    print('{} -> failed to schedule the meeting'.format(self.agent.jid))
                 elif decision == 'inform':
+                    # change the meeting time
+                    data = json.loads(final_msg_receive.body)
+
+                    start_time = datetime(data['year'], data['month'], data['day'], data['start_hour'],
+                                          data['start_minute'])
+                    end_time = datetime(data['year'], data['month'], data['day'], data['end_hour'], data['end_minute'])
+
+                    self.agent.proposed_meeting.start_time = start_time
+                    self.agent.proposed_meeting.end_time = end_time
+
                     print('{} -> schedule the meeting successfully'.format(self.agent.jid))
 
                     # add the proposed meeting
                     self.agent.add_meeting(self.agent.proposed_meeting)
 
                 # clear the meeting variables
-                self.agent.proposed_meeting = None
                 self.agent.receivers = None
 
                 # back to the first behaviour
@@ -776,6 +828,11 @@ class MeetingAgent(agent.Agent):
         #             best_slot = slot
         #
         #     return best_slot
+
+    def get_meeting_status(self):
+        meeting = self.proposed_meeting
+        self.proposed_meeting = None
+        return self.is_successful, meeting
 
 
 if __name__ == '__main__':
